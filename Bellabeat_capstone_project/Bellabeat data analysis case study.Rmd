@@ -69,3 +69,8 @@ This Kaggle data set contains personal fitness tracker from thirty fitbit users.
 
 This data set has a very limited time span and no information on the selection of the user sample were provided by the author. No anagraphic data of the users were provided to double check the sampling, we are forced to assume that the population sample were made correctly.
 
+The data set was copied and stored on my local machine for the analysis. Since the data set is public no security issue should occur.
+
+## Tools and process
+The analysis was performed using R coding language.
+A complete list of R packages, a data log and the source code are all avaible on the project github repository at this __[link]()__
