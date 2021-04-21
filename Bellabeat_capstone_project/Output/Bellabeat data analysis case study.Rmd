@@ -1,0 +1,71 @@
+---
+title: "Bellabeat data analysis case study"
+author: "Gabriel Scozzarro"
+date: "21/4/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## 1.0 Introduction
+
+Bellabeat is a high-tech manufacturer of health-focused products for women, with a high the potential to become a larger player in the global __[smartdevice](https://en.wikipedia.org/wiki/Smart_device)__ market.
+
+By 2016, Bellabeat had opened offices around the world and launched multiple products. Bellabeat products became available through a growing number of online retailers in addition to their own e-commerce channel on their __[website](https://bellabeat.com/)__. The company has invested in traditional advertising media, such as radio, out-of-home billboards, print, and television, but focuses on digital marketing extensively. Bellabeat invests year-round in Google Search, maintaining active Facebook and Instagram pages, and consistently engages consumers on Twitter. Additionally, Bellabeat runs video ads on Youtube and display ads on the Google Display Network to support campaigns around key marketing dates.
+
+The products and services offered by Bellabeat are:
+
+* __Bellabeat app__: The Bellabeat app provides users with health data related to their activity, sleep, stress,
+menstrual cycle, and mindfulness habits. This data can help users better understand their current habits and
+make healthy decisions. The Bellabeat app connects to their line of smart wellness products.
+
+* __Leaf__: Bellabeat’s classic wellness tracker can be worn as a bracelet, necklace, or clip. The Leaf tracker connects
+to the Bellabeat app to track activity, sleep, and stress.
+
+* __Time__: This wellness watch combines the timeless look of a classic timepiece with smart technology to track user
+activity, sleep, and stress. The Time watch connects to the Bellabeat app to provide you with insights into your
+daily wellness.
+
+* __Spring__: This is a water bottle that tracks daily water intake using smart technology to ensure that you are
+appropriately hydrated throughout the day. The Spring bottle connects to the Bellabeat app to track your
+hydration levels.
+
+* __Bellabeat membership__: Bellabeat also offers a subscription-based membership program for users.
+Membership gives users 24/7 access to fully personalized guidance on nutrition, activity, sleep, health and
+beauty, and mindfulness based on their lifestyle and goals.
+
+
+### 1.1 Scope of work & Business task
+Urška Sršen, the actual Chief Creative Officer in Bellabeat, strongly believe that available consumer data would reveal more opportunities for growth.
+She request the marketing analytics team to focus on a Bellabeat product and analyze smart device usage data in order to gain insight into how people are already using their smart devices. Then, using this information, she would like high-level recommendations for how these trends can inform Bellabeat marketing strategy.
+
+In addition, she ask to perform the analysis on data taken from non-Bellabeat smart devices and apply the obtained insights on one Bellabeat product.
+
+The information requested are the following:
+
+1. What are some trends in smart device usage?
+2. How could these trends apply to Bellabeat customers?
+3. How could these trends help influence Bellabeat marketing strategy?
+
+The expected output are the following:
+
+You will produce a report with the following deliverables:
+
+1. A clear summary of the business task
+2. A description of all data sources used
+3. Documentation of any cleaning or manipulation of data
+4. A summary of your analysis
+5. Supporting visualizations and key findings
+6. Your top high-level content recommendations based on your analysis
+
+## Data
+
+The data set provided was the __[FitBit Fitness Tracker Data](https://www.kaggle.com/arashnic/fitbit)__ realeased on __[Kaggle](https://www.kaggle.com/)__, under the license __[CC:0 Pubblic Domain](https://creativecommons.org/publicdomain/zero/1.0/)__, by the user __[Mobius](https://www.kaggle.com/arashnic)__.
+
+This Kaggle data set contains personal fitness tracker from thirty fitbit users. Thirty eligible Fitbit users consented to the submission of personal tracker data, including minute-level output for physical activity, heart rate, and sleep monitoring with a time span of 31 days. It includes information about daily activity, steps, and heart rate that can be used to explore users’ habits.
+
+This data set has a very limited time span and no information on the selection of the user sample were provided by the author. No anagraphic data of the users were provided to double check the sampling, we are forced to assume that the population sample were made correctly.
+
