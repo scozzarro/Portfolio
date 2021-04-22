@@ -20,7 +20,7 @@ _Note: Data used in the projects (accessed under data directory) is for demonstr
 - ### Data Analysis and Visualisation
 
 	- __R__ 
-	
+		-  __[Bellabeat](https://bellabeat.com/)__ Data analysis case study: Analyzing public fitness tracket __[data](https://www.kaggle.com/arashnic/fitbit)__ to 			discover possible trend and insight to improve Bellabeat products and marketing campaign. 
 	
 	- __Tableau__
 		
