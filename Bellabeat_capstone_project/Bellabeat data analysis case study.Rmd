@@ -61,16 +61,371 @@ You will produce a report with the following deliverables:
 5. Supporting visualizations and key findings
 6. Your top high-level content recommendations based on your analysis
 
-## Data
+## 2.0 Data
 
 The data set provided was the __[FitBit Fitness Tracker Data](https://www.kaggle.com/arashnic/fitbit)__ realeased on __[Kaggle](https://www.kaggle.com/)__, under the license __[CC:0 Pubblic Domain](https://creativecommons.org/publicdomain/zero/1.0/)__, by the user __[Mobius](https://www.kaggle.com/arashnic)__.
 
-This Kaggle data set contains personal fitness tracker from thirty fitbit users. Thirty eligible Fitbit users consented to the submission of personal tracker data, including minute-level output for physical activity, heart rate, and sleep monitoring with a time span of 31 days. It includes information about daily activity, steps, and heart rate that can be used to explore users’ habits.
+This Kaggle data set contains personal fitness tracker from 33 fitbit users. Thirty eligible Fitbit users consented to the submission of personal tracker data, including minute-level output for physical activity, heart rate, and sleep monitoring with a time span of 31 days starting from 04/12/2016. It includes information about daily activity, steps, and heart rate that can be used to explore users’ habits.
 
 This data set has a very limited time span and no information on the selection of the user sample were provided by the author. No anagraphic data of the users were provided to double check the sampling, we are forced to assume that the population sample were made correctly.
 
 The data set was copied and stored on my local machine for the analysis. Since the data set is public no security issue should occur.
 
-## Tools and process
+## 3.0 Tools and process
 The analysis was performed using R coding language.
-A complete list of R packages, a data log and the source code are all avaible on the project github repository at this __[link]()__
+A complete list of R packages, a data log and the source code are all avaible on the project github repository at this __[link](https://github.com/scozzarro/Portfolio/tree/main/Bellabeat_capstone_project)__. 
+
+```{r Tools and process, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE}
+
+# library & tools ----
+library(tidyverse)
+library(skimr)
+library(visdat)
+library(corrplot)
+library(timetk)
+library(RColorBrewer)
+library(scales)
+library(factoextra)
+library(corrplot)
+library(gridExtra)
+library(visdat)
+
+#importing
+daily_activity_data<- read_csv("Data/dailyActivity_merged.csv")
+
+heart_rate_seconds_data<- read_csv("Data/heartrate_seconds_merged.csv")
+
+hourly_calories_data<- read_csv("Data/hourlyCalories_merged.csv")
+hourly_intensities_data<- read_csv("Data/hourlyIntensities_merged.csv")
+hourly_steps_data<- read_csv("Data/hourlySteps_merged.csv")
+
+sleep_day_data<- read_csv("Data/sleepDay_merged.csv")
+
+weight_loss_data<- read_csv("Data/weightLogInfo_merged.csv")
+
+#Data sanity check
+sanity_check_1<- skim_without_charts(daily_activity_data)
+sanity_check_2<- skim_without_charts(heart_rate_seconds_data)
+sanity_check_3<- skim_without_charts(hourly_calories_data)
+sanity_check_4<- skim_without_charts(hourly_intensities_data)
+sanity_check_5<- skim_without_charts(hourly_steps_data)
+sanity_check_6<- skim_without_charts(sleep_day_data)
+sanity_check_7<- skim_without_charts(weight_loss_data)
+
+
+#Data fixing
+
+daily_activity_data$ActivityDate<- as.Date(daily_activity_data$ActivityDate, format = c('%m/%d/%Y'))
+
+heart_rate_seconds_data$Day<- as.Date(heart_rate_seconds_data$Time, format = c('%m/%d/%Y'))
+heart_rate_seconds_data$Time<- strptime(heart_rate_seconds_data$Time, format = "%m/%d/%Y %I:%M:%S %p")
+heart_rate_seconds_data$Time<- format(heart_rate_seconds_data$Time, format = '%I:%M:%S %p')
+
+hourly_calories_data$Day<- as.Date(hourly_calories_data$ActivityHour, format = c('%m/%d/%Y'))
+hourly_calories_data$ActivityHour<- strptime(hourly_calories_data$ActivityHour, format = "%m/%d/%Y %I:%M:%S %p")
+hourly_calories_data$ActivityHour<- format(hourly_calories_data$ActivityHour, format = '%I:%M:%S %p')
+
+hourly_intensities_data$Day<- as.Date(hourly_intensities_data$ActivityHour, format = c('%m/%d/%Y'))
+hourly_intensities_data$ActivityHour<- strptime(hourly_intensities_data$ActivityHour, format = "%m/%d/%Y %I:%M:%S %p")
+hourly_intensities_data$ActivityHour<- format(hourly_intensities_data$ActivityHour, format = '%I:%M:%S %p')
+
+hourly_steps_data$Day<- as.Date(hourly_steps_data$ActivityHour, format = c('%m/%d/%Y'))
+hourly_steps_data$ActivityHour<- strptime(hourly_steps_data$ActivityHour, format = "%m/%d/%Y %I:%M:%S %p")
+hourly_steps_data$ActivityHour<- format(hourly_steps_data$ActivityHour, format = '%I:%M:%S %p')
+
+sleep_day_data$SleepDay<- as.Date(sleep_day_data$SleepDay, format = c('%m/%d/%Y'))
+
+weight_loss_data$Date<- as.Date(weight_loss_data$Date, format = c('%m/%d/%Y'))
+
+
+```
+
+## 4.0 Analysis
+
+### 4.1 Daily activity analysis
+
+The daily activity data located inside the Fitbit data set was submitted by all the 33 users.
+According to this data we discover that among the 33 users the large majority of them use the smart activity for almost all the time period:
+
+```{r Analysis 1, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '90%'}
+
+daily_activity_data$training_day<- ifelse(daily_activity_data$VeryActiveMinutes>= 10, 1, 0)
+
+daily_activity_prcs<- daily_activity_data %>% group_by(Id) %>% 
+                                              summarise(Usage = n(), 
+                                              avg_workout_time = mean(VeryActiveMinutes+FairlyActiveMinutes), 
+                                              workouts = sum(training_day),
+                                              first_record = min(ActivityDate),
+                                              last_record = max(ActivityDate),
+                                              avg_distance = mean(TotalDistance),
+                                              avg_steps = mean(TotalSteps))
+
+daily_activity_prcs %>% ggplot(aes(Usage)) +
+                        geom_density(col='lightseagreen', fill = 'grey', alpha = 0.7, size= 1 ) +
+                        labs(title = 'Days of usage distribution', subtitle = 'Usage is express in days') +
+                        theme_minimal()
+```
+
+During this time period users performed several workouts with an average of `r round(mean(daily_activity_prcs$workouts)/4.4)` workouts per week. 
+
+```{r Analysis 2, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '90%'}
+daily_activity_prcs %>% ggplot(aes(workouts)) +
+                        geom_density(col='lightseagreen', fill = 'grey', alpha = 0.7, size = 1) +
+                        labs(title = '1 month workouts distribution', subtitle = '(workouts are counted if user registered >10 minutes of Very Active activity)') +
+                        theme_minimal()
+```
+\pagebreak
+
+The quantity of activity for each week was `r mean(daily_activity_prcs$avg_workout_time)*3` minutes per week which, according to __[World Healthcare Organization](https://www.who.int/dietphysicalactivity/factsheet_recommendations/fr/)__, are below the recommended level of 150 minutes per week.
+
+
+```{r Analysis 3, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '90%'}
+daily_activity_prcs %>% ggplot(aes(avg_workout_time)) +
+                        geom_density(col='lightseagreen', fill = 'grey', alpha = 0.7, size = 1) +
+                        labs(title = 'Workout time distribution', subtitle = '(workouts are counted if user registered >10 minutes of Very Active activity)') +
+                        xlab('Average workout time')+
+                        theme_minimal()
+```
+The favorite day for workout was identified on Tuesday:
+
+```{r Analysis 4, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '90%'}
+
+most_cmn_training_day<- daily_activity_data %>% filter(training_day == 1) %>%
+                        count(format(ActivityDate, format ='%A'))
+
+#most_cmn_training_day[order(most_cmn_training_day$n, decreasing = TRUE),]
+
+daily_activity_data %>% filter(training_day == 1) %>%
+                        ggplot(aes(format(ActivityDate, format ='%A'), fill = format(ActivityDate, format ='%A'))) +
+                        geom_bar(stat = 'count') +
+                        scale_fill_brewer(palette = 'Set3') +
+                        xlab('Days of week') +
+                        ylab('Workout count') +
+                        labs(title = 'Most common day for training') +
+                        theme_minimal() +
+                        theme(legend.position = "none")
+```
+
+Since physical exercise is an incremental activity every progress and trend can be observed over time.
+
+```{r Analysis 5, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '94%'}
+daily_activity_data %>% group_by(Id) %>%
+                        mutate(Workout_time = VeryActiveMinutes+FairlyActiveMinutes) %>%
+                        summarise(Usage = n(), ActivityDate, Workout_time) %>%
+                        filter(Usage >= 15) %>%
+                        ggplot(aes(ActivityDate, Workout_time)) +
+                        geom_point() +
+                        geom_smooth(method = 'loess', color = 'lightseagreen') +
+                        facet_wrap(~Id, ) +
+                        labs(title = 'Workout time trends over time') +
+                        theme_minimal() +
+                        theme(strip.background = element_blank(),
+                              strip.text.x = element_blank(),
+                              axis.text.x = element_text(angle=45))
+
+
+daily_activity_data %>% group_by(Id) %>%
+                        summarise(Usage = n(), SedentaryMinutes, ActivityDate) %>%
+                        filter(Usage >= 15) %>%
+                        ggplot(aes(ActivityDate, SedentaryMinutes)) +
+                        geom_point() +
+                        geom_smooth(method = 'loess', color = 'lightseagreen') +
+                        facet_wrap(~Id) +
+                        labs(title = 'Sedentary time trends over time') +
+                        theme_minimal() +
+                        theme(strip.background = element_blank(),
+                              strip.text.x = element_blank(),
+                              axis.text.x = element_text(angle=45))
+
+daily_activity_data %>% group_by(Id) %>%
+                        ggplot(aes(ActivityDate, Calories)) +
+                        geom_point() +
+                        geom_smooth(method = 'loess', color = 'lightseagreen') +
+                        facet_wrap(~Id) +
+                        labs(title = 'Calories burned trends over time') +
+                        theme_minimal() +
+                        theme(strip.background = element_blank(),
+                              strip.text.x = element_blank(),
+                              axis.text.x = element_text(angle=45))
+
+
+
+```
+
+We can observe that over all there no significance changes over time on the workout habit for the user. They don't train more and don't workout harder which is express by the calories burned over time plot. That said, it is important to point out that this data set is very limited in time span and physical activity habits are very difficult to change in this short time.
+
+\pagebreak
+
+From the data we can appreciate a pattern based on the workout habits and intensities. Using a __[K-means clustering](https://en.wikipedia.org/wiki/K-means_clustering#:~:text=k%2Dmeans%20clustering%20is%20a,a%20prototype%20of%20the%20cluster.)__ method we identify two cluster of users:
+
+```{r Analysis 6, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '50%'}
+daily_activity_clust<- daily_activity_data %>% group_by(Id) %>%
+                                               summarise(workout = sum(training_day),
+                                                         avg_steps = mean(TotalSteps),
+                                                         avg_workout_time = mean(VeryActiveMinutes + FairlyActiveMinutes),
+                                                         avg_calories = mean(Calories))
+
+cluster<- kmeans(scale(daily_activity_clust[,2:5]), 2, nstart = 25)
+
+fviz_cluster(cluster, data = daily_activity_clust[,2:5], 
+             palette = c("#2E9FDF", "#00AFBB"), 
+             geom = "point",
+             ellipse.type = "convex", 
+             ggtheme = theme_minimal())
+
+daily_activity_clust$Cluster<- as.factor(cluster$cluster)
+
+daily_activity_clust %>% group_by(Cluster) %>% 
+                         summarise(Number_of_user = n(),
+                                   workout = mean(workout),
+                                   steps = mean(avg_steps)) %>%
+                         ggplot(aes(Cluster, Number_of_user, fill = Cluster)) +
+                         geom_bar(stat = 'identity') +
+                         scale_fill_brewer(palette = 'Set3') +
+                         ylab('Number of users') +
+                         labs(title = 'User cluster dimension') +
+                         theme_minimal()
+
+daily_activity_clust %>% group_by(Cluster) %>%
+                         ggplot() +
+                         geom_bar(aes(workout, fill = Cluster), stat = 'count') +
+                         facet_wrap(~ Cluster) +
+                         theme_minimal()
+```
+\pagebreak
+
+### 4.2 Sleep analysis
+The data set contained also some data on sleep time. The average sleep time is `r round(mean(sleep_day_data$TotalMinutesAsleep)/60)` hours which is the minimum level suggested by the all scientists including the __[Mayo Clinic](https://www.mayoclinic.org/healthy-lifestyle/adult-health/expert-answers/how-many-hours-of-sleep-are-enough/faq-20057898)__.
+
+```{r Analysis 7, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '94%'}
+sleep_day_prc<- sleep_day_data %>% group_by(Id) %>%
+                   summarise(Usage = n(), avg_sleep_time = mean(TotalMinutesAsleep)) %>%
+                   filter(Usage >= 15)
+
+sleep_day_prc %>% ggplot(aes(round(avg_sleep_time))) +
+                  geom_density(col='lightseagreen', fill = 'grey', alpha = 0.7, size = 1) +
+                  xlab('Average sleep time in minutes') +
+                  labs(title = 'Sleep time distribution') +
+                  theme_minimal()
+```
+
+If we correlate the daily activity data and the sleep data we found surprisingly that there is a negative correlation between the number of workouts and the average sleeping time. This means that who workout more sleep less which is anti-intuitive.
+
+```{r Analysis 8, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '70%'}
+Activity_sleep_merged_data<- inner_join(daily_activity_clust, sleep_day_prc, by = 'Id')
+Activity_sleep_merged_data<- Activity_sleep_merged_data[,-7]
+
+#Correlation analysis
+
+corrplot(cor(Activity_sleep_merged_data[,-c(1,6)]), method = 'circle', addCoef.col = "black")
+```
+\pagebreak
+
+### 4.3 Weight loss anlysis
+The weight loss data was the most controversial because was partially submitted by hand from the user. In fact almost all the Fat value was missing probably due to the absence of the right balance capable of estimate the fat presence inside the body.
+
+```{r Analysis 9, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '50%'}
+weight_loss_data %>% ggplot(aes(IsManualReport, fill = IsManualReport)) +
+                     geom_bar(stat = 'count') +
+                     labs(title = 'Manual weight reporting stat', subtitle = '61% of user reported weight manually') +
+                     theme_minimal() +
+                     theme(legend.position = 'none')
+
+vis_miss(weight_loss_data)
+```
+
+Observing how the weight of the users progress during the time period we found a very small difference because the majority of the users maintain the same weight with an average loss of only 0,46Kg (~1 pound).
+
+
+```{r Analysis 10, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '50%'}
+for (i in 1:length(weight_loss_data$BMI)) {
+  if(weight_loss_data$BMI[i] <= 18.5){
+    weight_loss_data$BMI_analysis[i] = 'Under weight'  
+  } else if (18.5 < weight_loss_data$BMI[i] & weight_loss_data$BMI[i] <= 25) {
+    weight_loss_data$BMI_analysis[i] = 'Normal weight'  
+  } else if (25 < weight_loss_data$BMI[i] & weight_loss_data$BMI[i] <= 30) {
+    weight_loss_data$BMI_analysis[i] = 'Over weight'
+  } else if (weight_loss_data$BMI[i]> 30) {
+    weight_loss_data$BMI_analysis[i] = 'Obese'
+  }
+}
+
+
+weight_loss_prc<- weight_loss_data %>% group_by(Id) %>%
+                                      summarise(First_record = min(Date),
+                                                Start_Weight = WeightKg[which(Date == min(Date))],
+                                                Last_record = max(Date),
+                                                End_weight = WeightKg[which(Date == max(Date))],
+                                                Weight_difference = abs(Start_Weight - End_weight),
+                                                Start_BMI_val = BMI[which(Date == min(Date))],
+                                                Final_BMI_value = BMI[which(Date == max(Date))],
+                                                Start_BMI_condition = BMI_analysis[which(Date == min(Date))],
+                                                Final_BMI_condition = BMI_analysis[which(Date == max(Date))])
+
+best_weight_dif<- max(weight_loss_prc$Weight_difference)
+
+avg_weight_dif<- mean(weight_loss_prc$Weight_difference)
+
+start_weight_dist_plot<- weight_loss_prc %>% 
+                         ggplot(aes(Start_Weight)) +
+                         geom_density(col='lightseagreen', fill = 'grey', alpha = 0.7, size= 1 ) +
+                         labs(title = 'User weight distribution at the start', subtitle = 'Weight is express in Kg') +
+                         theme_minimal()
+
+final_weight_dist_plot<- weight_loss_prc %>% 
+                         ggplot(aes(End_weight)) +
+                         geom_density(col='lightseagreen', fill = 'grey', alpha = 0.7, size= 1 ) +
+                         annotate('text', x = 115, y = 0.015, label = 'Average weight loss = 0,46 Kg') +
+                         annotate('text', x = 113, y = 0.0125, label = 'Max weight loss = 1.8 Kg') +
+                         labs(title = 'User weight distribution at the end', subtitle = 'Weight is express in Kg') +
+                         theme_minimal()
+
+bmi_plot<- weight_loss_data %>% group_by(Id) %>%
+                     summarise(Start_BMI_condition = BMI_analysis[which(Date == min(Date))],
+                               Final_BMI_condition = BMI_analysis[which(Date == max(Date))]) %>%
+                     ggplot(aes(Start_BMI_condition, fill = Start_BMI_condition)) +
+                     geom_bar() +
+                     geom_text(aes(label = ..count..),
+                     stat='count',
+                     nudge_y = 0.125,
+                     vjust = -1) +
+                     labs(title = 'User BMI distribution') +
+                     theme_minimal() +
+                     theme(legend.position = 'none')
+
+grid.arrange(start_weight_dist_plot, final_weight_dist_plot, ncol = 1)
+bmi_plot
+```
+\pagebreak
+
+If we merged the data from the daily activity with the weigh loss data we discover something interesting: Some user even if the workout constantly everyday for a month, the weight loss was zero o very marginal. This could be due to a wrong nutrition or a specific training for building up muscles.
+
+```{r Analysis 11, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '50%'}
+Activity_weight_loss_merged<- inner_join(daily_activity_clust, weight_loss_prc, by = 'Id')
+
+Activity_weight_loss_merged %>% ggplot(aes(workout, Weight_difference, color = Final_BMI_condition)) +
+                                geom_point(size = 2) +
+                                ylab('Weight loss in Kg') +
+                                labs(title = 'Weigh loss vs Number of workout') +
+                                theme_minimal() 
+
+```
+
+Proceeding with a correlation analysis, there is a very strong negative correlation between the average daily steps quantity and the BMI value which suggest, as you would expect, that walking is very good for health.
+```{r Analysis 12, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '90%'}
+corrplot(cor(Activity_weight_loss_merged[,-c(1,6,7,9,14,15)]), method = 'circle', addCoef.col = "black")
+```
+\pagebreak
+
+## 5.0 Recomandation
+According to what we see in data my recommendations are:
+
+* The data set provided was very limited in time frame and significant changes in fitness habits are difficult to manifest in this short time. A new analysis should be performed with a new data set to discover more information and confirm or dispute the findings of this work. According to the work __[P.Lally et all 'How are habits formed: Modelling habit formation in the real worl'](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.988.7737&rep=rep1&type=pdf)__, 66 repetitions was the average for activities performed daily becoming automatic. If we consider an average of 3 workouts per week, the ideal time to see possible changes or trend in user health is at least 22 weeks.
+
+* The new data set should have information about user anagraphic. In this way more evident user cluster could be be identify an used for advertising.
+
+* The favorite day for workout is Tuesday, this could be exploited by marketing.
+
+* The weight loss data presented many missing fat values and 61% of user inserted data manually. This could be a market opportunity for a smart scale to be added inside the Bellabeat product list.
+
+* Some users even if they train constantly for all the time period didn't loss weight. This could be due to a wrong nutrition or a specific training for building muscle. If further investigation confirm this, nutrition or training suggestion might be a key added value inside Bellabeat membership. 

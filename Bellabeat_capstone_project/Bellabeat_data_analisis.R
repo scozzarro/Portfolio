@@ -196,7 +196,7 @@ sleep_day_prc<- sleep_day_data %>% group_by(Id) %>%
                    filter(Usage >= 15)
 
 Activity_sleep_merged_data<- inner_join(daily_activity_clust, sleep_day_prc, by = 'Id')
-Activity_sleep_merged_data<-Activity_sleep_merged_data[,-7]
+Activity_sleep_merged_data<- Activity_sleep_merged_data[,-7]
 
 #Correlation analysis
 
