@@ -1,0 +1,361 @@
+---
+title: "Whatsapp sentiment analysis project"
+author: "Gabriel Scozzarro"
+date: "19/12/2020"
+output: pdf_document
+mainfont: Arial
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## 1. Introduction
+This project aim to perform a sentiment analysis on the content of a Whatsapp chat based on words and emoji used.
+The time frame of the analysis is Jan 2020 - Dic 2020 
+
+## 2. Toolbox
+
+Importing the libraries that the project will use.
+
+````{r lib, warning = FALSE, error = FALSE, message = FALSE}
+library(rwhatsapp)
+library(lubridate)
+library(tidyverse)
+library(tidytext)
+library(kableExtra)
+library(knitr)
+library(ggimage)
+library(RColorBrewer)
+````
+
+
+## 3. Preparation and reading data
+
+After importing the contet of the chat as dataframe, some operation were performed:
+1. Delete first row with the Whatsapp privicy disclaimer
+2. Change one chat user name to simplify usage in code
+3. Create a new feature to assign to each messages the correct season
+
+````{r}
+mychat<- rwa_read('chat_A_G.txt')
+````
+This is the preview of the content inside our dataframe after the processing:
+````{r echo = FALSE}
+mychat<- mychat[-c(1:14),] #delete first raw with whatsapp privacy encoding disclaimer
+
+
+
+mychat$author<- as.character(mychat$author)
+mychat$author[mychat$author != "Andrea Marciano"] <- "Gabriel"
+mychat$author<- as.factor(mychat$author)    
+
+
+mychat<- mychat %>% 
+         mutate(day = date(time))%>%
+         mutate(season = case_when(day >= dmy(24092019) & day <= dmy(20122019) ~ 'Autumn 2019',
+                                   day >= dmy(21122019) & day <= dmy(31032020) ~ 'Winter 2020',
+                                   day >= dmy(01042020) & day <= dmy(21062020) ~ 'Spring 2020',
+                                   day >= dmy(22062020) & day <= dmy(23092020) ~ 'Summer 2020',
+                                   day >= dmy(24092020) & day <= dmy(15122020) ~ 'Autumn 2020'
+                                   ))
+
+mychat$season<- factor(mychat$season)
+
+mychat %>% head(10) %>% kable('latex', digits = 10, booktabs = T) %>% kable_styling(full_width = FALSE, font_size = 11, latex_options = c("striped", 'condensed','scale_down')) %>% column_spec(3, width = "25em")
+````
+
+## 4. EDA
+
+I start the exploration and the data analysis looking for the daily messages frequency divided by season
+
+```{r daily freq, echo=FALSE}
+#Messages per seasons 
+mychat %>% group_by(season) %>%
+           count(day) %>%
+           ggplot(aes(day, n, fill = season)) +
+           geom_bar(stat = 'identity') +
+           ylab('Numbers of messages') +
+           xlab('season') +
+           ggtitle('Messages per Seasons') +
+           theme_minimal() +
+           theme(legend.position = 'bottom')
+```
+We can observed a rise in number of messages through the season with some spikes but with essentially an exponential trend, starting from April 2020 which was in the middle of the first lockdown.
+Then I explore the frequency of messages per day of week and also the frequency of messages per hour of the day.
+
+````{r freq week, echo = FALSE}
+#Messages per day of week
+mychat %>% mutate(wday_num = wday(day), wday_name = weekdays(day)) %>%
+           group_by(season, wday_num, wday_name) %>%
+           count() %>%
+           ggplot(aes(reorder(wday_name, -wday_num), n, fill = season)) +
+           geom_bar(stat = 'identity') +
+           xlab('') +
+           coord_flip() +
+           ggtitle('Messages per day of week', 'Frequency per seasons') +
+           theme_minimal() +
+           theme(legend.title = element_blank(), legend.position = 'bottom')
+
+````
+We can appreciate the consistency during the summer of messages, instead during the autumn 2020 we have clearly more messages per day but with 2 noticeable spikes in monday and thursday.
+
+````{r freq hour day, echo = FALSE}
+#Message frequency by the time of day
+wdays<- c('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday')
+names(wdays)<- 1:7 #Messages per day hours
+mychat %>% mutate(hours = hour(time), wday_num = wday(day), wday_name = weekdays(day)) %>%
+           count(season, wday_num, wday_name, hours) %>%
+           ggplot(aes(hours, n, fill = season)) +
+           geom_bar(stat = 'identity') +
+           ylab('Number of messages') +
+           xlab('Hours') +
+           ggtitle('Number of messages per day hours', 'Frequency per seasons') +
+           facet_wrap(~wday_num, ncol = 7, labeller = labeller(wday_num = wdays)) +
+           theme_minimal() +
+           theme(legend.title = element_blank(), legend.position = 'bottom', 
+                 panel.spacing.x = unit(0.0, 'lines'))
+````
+Now I can move on exploring who sent more messages during the all time frame in analysis and also divided by season
+
+````{r more messages, echo = FALSE, warning = FALSE}
+#Who has sent the most messages?
+mychat %>% mutate(day = date(time)) %>%
+           group_by(season) %>%
+           count(author) %>%
+           ggplot(aes(reorder(author,n), n, fill = season)) +
+           geom_bar(stat = 'identity') +
+           ylab('Total number of messages') +
+           xlab('User') +
+           coord_flip() +
+           ggtitle('Total number of messages per user', 'Who has sent the most messages?, Freq per season') +
+           theme_minimal() +
+           theme(legend.title = element_blank(), legend.position = 'bottom')
+
+````
+One of the user sent sensibly more messages but this can be due to the fragmentation of the content in several more small messages.
+We can investigate further to see how it is.
+
+````{r len messages, echo = FALSE, warning = FALSE, message = FALSE}
+#Lenght of messages
+mychat %>% mutate(text_len = nchar(text)) %>%
+           group_by(author) %>%
+           summarise(avg_txt_len = mean(text_len)) %>%
+           ggplot(aes(author, avg_txt_len, fill = author)) +
+           geom_bar(stat = 'identity') +
+           xlab('Author') +
+           ylab('Average messages lenght') +
+           coord_flip() +
+           ggtitle('Average messages lenght by author') +
+           theme_minimal() +
+           theme(legend.title = element_blank(), legend.position = 'bottom')
+
+````
+As we suspected the average length of messages of the other user is longer sacrificing the quantity of messages.
+This can improve also the clarity of the content.
+Moving forward to the content inside the chat we can start with the non text related content which are emojis.
+
+````{r most used emoji, echo = FALSE}
+emojiplot<- mychat %>% 
+            unnest(c(emoji, emoji_name)) %>%
+            mutate(emoji = str_sub(emoji, end = 1)) %>%
+            mutate(emoji_name = str_remove(emoji_name, ':.*')) %>%
+            count(emoji, emoji_name) %>%
+            top_n(30, n) %>%
+            arrange(desc(n)) %>%
+            mutate(emoji_url = map_chr(emoji, ~paste0('https://abs.twimg.com/emoji/v2/72x72/',
+                                                      as.hexmode(utf8ToInt(.x)),'.png')))
+emojiplot %>% ggplot(aes(reorder(emoji_name, n), n)) +
+              geom_col(aes(fill = n), show.legend = FALSE, width = .2) +
+              geom_point(aes(color = n), show.legend = FALSE, size = 3) +
+              geom_image(aes(image = emoji_url), size = .045) +
+              ylab('Number of times emoji was used') +
+              xlab('Emoji meaning') +
+              ggtitle('Most used emoji') + 
+              coord_flip() +
+              theme_minimal() +
+              theme()
+````
+Those are the 30 most used emojis overall inside the chat.
+In the next plot we can also appreciate the most used ones by user.
+
+````{r most used emoji by author, echo = FALSE}
+emojiplot2<- mychat %>% 
+             unnest(c(emoji, emoji_name)) %>%
+             mutate(emoji = str_sub(emoji, end = 1))%>%
+             count(author, emoji, emoji_name, sort = TRUE) %>%
+             group_by(author) %>%
+             top_n(8, n) %>%
+             slice(1:8) %>%
+             mutate(emoji_url = map_chr(emoji, ~paste0('https://abs.twimg.com/emoji/v2/72x72/', 
+                                                        as.hexmode(utf8ToInt(.x)),'.png')))
+emojiplot2 %>% ggplot(aes(reorder(emoji, -n), n)) +
+               geom_col(aes(fill = author, group = author), show.legend = FALSE, width = .20) +
+               geom_image(aes(image = emoji_url), size = .08) +
+               xlab('Emiji') +
+               ylab('Number of time emoji was used') +
+               facet_wrap(~author, ncol = 5, scales = 'free') +
+               ggtitle('Most used emoji by user') +
+               theme_minimal() +
+               theme(axis.text.x = element_blank())
+````
+Now is time for text related content. I define a list of words which will not be taken in consideration because are pronouns or articles and ecc.
+
+````{r most used words, echo = FALSE}
+#3.6 Most used words ----
+useless_words<-c('il','lo','la','un','uno','una','quello','quella','quelli','nostro','vostro','di','quanto','che','se','sono',
+                 'loro','alla','alle','niente','meno','piu','qui','qua','con','voi','chi','mio','tuo','va','ma','è','stata',
+                 'per', 'nn','a','le','te','in','e','sto','da','sei','me','ho','ha','mi','we','per','non','sta','o','fra',
+                 'su','so','hai','ci','mo','sn','eh','ti','c3','i','fa','al','ne','del')
+
+mychat %>% unnest_tokens(input = text, output = word) %>%
+           filter(!word %in% useless_words) %>%
+           count(word) %>%
+           top_n(30, n) %>%
+           arrange(desc(n)) %>%
+           ggplot(aes(reorder(word, n), n, fill = n, color = n)) +
+           geom_col(show.legend = FALSE, width = .1) +
+           geom_point(show.legend = FALSE, size = 3) +
+           ggtitle('Most used words in chat') +
+           xlab('Words') +
+           ylab('Number of time it was used') +
+           coord_flip() +
+           theme_minimal()
+````
+Overall surprisingly the most used word taking in account both user is "yes".
+I further divided the most used words by the user.
+
+````{r most used words by user, echo = FALSE}
+#Most used words in chat, by user
+mychat %>% unnest_tokens(input = text, output = word) %>%
+           filter(!word %in% useless_words) %>%
+           count(author, word, sort = TRUE) %>%
+           group_by(author) %>%
+           top_n(20, n) %>%
+           slice(1:20) %>%
+           ungroup() %>%
+           arrange(author, desc(n)) %>%
+           mutate(order = row_number()) %>%
+           ggplot(aes(reorder(word, n), n, fill = author, color = author)) +
+           geom_col(show.legend = FALSE, width = .1) +
+           geom_point(show.legend = FALSE, size = 3) +
+           xlab('Words') +
+           ylab('Number of time it was used') +
+           coord_flip() +
+           facet_wrap(~author, ncol = 3, scales = 'free') +
+           ggtitle('Most used words by user') +
+           theme_minimal()
+````
+Surprisingly for one of the user the 2 most user words are synonyms, meaning "yes".
+
+## 5. Lexicon analysis
+Let's see the user lexicon diversity to understand if the counting of words is due to vocabulary poorness.
+
+````{r lexicon div, echo = FALSE}
+#1.1 Lexicon diversity ----
+mychat %>% unnest_tokens(input = text, output = word) %>%
+           filter(!word %in% useless_words)  %>%
+           group_by(author) %>%
+           summarise(lex_div = n_distinct(word)) %>%
+           arrange(desc(lex_div)) %>%
+           ggplot(aes(reorder(author, lex_div), lex_div, fill = author)) +
+           geom_col(show.legend = FALSE) +
+           geom_text(aes(label = scales::comma(lex_div)), hjust = -0.1) +
+           ylab("Lexicon diversity") +
+           xlab("User") +
+           ggtitle("Lexicon diversity in chat by author") +
+           coord_flip()
+````
+As we see one user has a more rich vocabulary to choose on and so a few chances to repeat the same word. 
+
+## 6. Sentiment analysis
+Now is time to investigate the sentiment analysis. I started with the sentiment express in the non textual content which are emojis.
+For this analysis I used the AFINN method.
+
+````{r emoji sentiment, echo = FALSE, warning = FALSE, message = FALSE}
+# GET POSITIVE / NEGATIVE FROM LEXICON PACKAGE
+lexicon_negpos<- get_sentiments("afinn")
+emoji_sent_score<- mychat %>% select(emoji, emoji_name) %>% 
+                              unnest(emoji, emoji_name) %>%
+                              mutate(emoji = str_sub(emoji, end = 1)) %>%
+                              mutate(emoji_name = str_remove(emoji_name, ":.*")) %>%
+                              distinct() %>%
+                              unnest_tokens(input = emoji_name, output = emoji_words) %>%
+                              inner_join(lexicon_negpos, by = c("emoji_words" = "word"))
+
+bind_cols(slice(emoji_sent_score, 01:05),
+          slice(emoji_sent_score, 06:10),
+          slice(emoji_sent_score, 11:15),
+          slice(emoji_sent_score, 16:20),
+          slice(emoji_sent_score, 21:25)) %>%
+          kable(format = 'latex', digits = 5, booktabs = T) %>%
+          kable_styling(full_width = FALSE, font_size = 11, latex_options = c("striped",'condensed','scale_down'))
+
+
+emoji_chat<- mychat %>% unnest(emoji, emoji_name) %>% mutate( emoji = str_sub(emoji, end = 1)) %>%
+                        mutate( emoji_name = str_remove(emoji_name, ":.*"))
+
+emoji_chat<- emoji_chat %>% select(author, emoji_name) %>% unnest_tokens(input = emoji_name, output = emoji_words)
+
+user_summary<- emoji_chat %>% inner_join(lexicon_negpos, by = c("emoji_words"="word")) %>%
+                              count(author, value) %>%
+                              group_by(author) %>%
+                              mutate(mean = n/sum(n)) %>%
+                              ungroup()
+
+reordenar_niveles <- c(-3,-2,-1,3,2,1)
+colores <- c("#d7191c","#fdae61","#ffffbf","#1a9641","#a6d96a","#ffffbf")
+mis_colores <- brewer.pal(5,"RdYlGn")[c(1,2,3,5,4,3)]
+
+user_summary %>% mutate(mean = ifelse(value<0, -mean, mean)) %>%
+                 group_by(author) %>%
+                 mutate(balance = sum(mean)) %>%
+                 ungroup() %>%
+                 mutate(value = factor(value, levels = reordenar_niveles, ordered = TRUE)) %>%
+                 ggplot(aes(reorder(author, balance), mean, fill = value)) +
+                 geom_bar(stat = "identity", position = "stack", show.legend = FALSE, width = .5) +
+                 scale_fill_manual(values = mis_colores) +
+                 xlab("User") +
+                 ylab("Scale of positive and negative") +
+                 coord_flip() +
+                 ggtitle("Emoji sentiment analysis with AFINN") +
+                 theme_minimal()
+````
+You can see previously a preview table with the meaning of the emoji and the corresponding polarity value, then a plot with the overall sentiment analysis in the chat.
+In the next plot you will see the most frequent emotion express in the chat.
+
+````{r most freq emotion, echo = FALSE, warning = FALSE, message = FALSE}
+#Most frequent emotion
+lexicon_sentiment<- get_sentiments("nrc")
+
+emoji_emo<- mychat %>% select(emoji, emoji_name) %>%
+                       unnest(emoji, emoji_name) %>%
+                       mutate(emoji = str_sub(emoji, end = 1)) %>%
+                       mutate(amoji_name = str_remove(emoji_name, ":.*")) %>%
+                       unnest_tokens(input = emoji_name, output = emoji_words) %>%
+                       inner_join(lexicon_sentiment, by = c("emoji_words" = "word")) %>%
+                       filter(!sentiment %in% c("negative", "positive")) %>%
+                       count(emoji, emoji_words, sentiment) %>%
+                       group_by(sentiment) %>%
+                       top_n(4, n) %>%
+                       slice(1:4) %>%
+                       ungroup() %>%
+                       select(-n)
+
+chat_sentiment<- emoji_chat %>% inner_join(lexicon_sentiment, by = c("emoji_words" = "word")) %>%
+                                filter(!sentiment %in% c("negative", "positive"))
+
+chat_sentiment %>% count(sentiment) %>%
+                   ggplot(aes(reorder(sentiment, n), n)) +
+                   geom_col(aes(fill = n), show.legend = FALSE, width = .1) +
+                   geom_point(aes(color = n), show.legend = FALSE, size = 3) +
+                   coord_flip() +
+                   ylab("Number of times") +
+                   xlab("Emotion") +
+                   scale_fill_gradient(low="#2b83ba",high="#d7191c") +
+                   scale_color_gradient(low="#2b83ba",high="#d7191c") +
+                   ggtitle("Most frequent emotions expressed in chat through") +
+                   theme_minimal()
+
+````
+You can see as the emoji used by one of the user are practically monotone expressing a mild negative sentiment.
+The other user used mostly mild negative emojis too but with more shades. 

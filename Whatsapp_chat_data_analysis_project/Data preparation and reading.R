@@ -5,8 +5,8 @@ library(lubridate)
 library(tidyverse)
 library(tidytext)
 library(kableExtra)
-library(RColorBrewer)
 library(knitr)
+library(ggimage)
 
 #1. Import chat ----
 mychat<- rwa_read('chat_A_G.txt')
@@ -15,28 +15,18 @@ mychat<- rwa_read('chat_A_G.txt')
 summary(mychat)
 str(mychat)
 
-mychat<- mychat[-1,] #delete first raw with whatsapp privacy encoding disclaimer
+mychat<- mychat[-c(1:14),] #delete first raw with whatsapp privacy encoding disclaimer
+
+
 
 mychat$author<- as.character(mychat$author)
-mychat$author[mychat$author != "Andrea Marciano"] <- "G"
-mychat$author<- as.factor(mychat$author)                     
+mychat$author[mychat$author != "Andrea Marciano"] <- "Gabriel"
+mychat$author<- as.factor(mychat$author)    
 
 
 mychat<- mychat %>% 
          mutate(day = date(time))%>%
-         mutate(season = case_when(
-                                   day >= dmy(05012017) & day <= dmy(31032017) ~ 'Winter 2017',
-                                   day >= dmy(01042017) & day <= dmy(21062017) ~ 'Spring 2017',
-                                   day >= dmy(22062017) & day <= dmy(23092017) ~ 'Summer 2017',
-                                   day >= dmy(24092017) & day <= dmy(20122017) ~ 'Autumn 2017',
-                                   day >= dmy(21122017) & day <= dmy(31032018) ~ 'Winter 2018',
-                                   day >= dmy(01042018) & day <= dmy(21062018) ~ 'Spring 2018',
-                                   day >= dmy(22062018) & day <= dmy(23092018) ~ 'Summer 2018',
-                                   day >= dmy(24092018) & day <= dmy(20122018) ~ 'Autumn 2018',
-                                   day >= dmy(21122018) & day <= dmy(31032019) ~ 'Winter 2019',
-                                   day >= dmy(01042019) & day <= dmy(21062019) ~ 'Spring 2019',
-                                   day >= dmy(22062019) & day <= dmy(23092019) ~ 'Summer 2019',
-                                   day >= dmy(24092019) & day <= dmy(20122019) ~ 'Autumn 2019',
+         mutate(season = case_when(day >= dmy(24092019) & day <= dmy(20122019) ~ 'Autumn 2019',
                                    day >= dmy(21122019) & day <= dmy(31032020) ~ 'Winter 2020',
                                    day >= dmy(01042020) & day <= dmy(21062020) ~ 'Spring 2020',
                                    day >= dmy(22062020) & day <= dmy(23092020) ~ 'Summer 2020',
@@ -44,6 +34,8 @@ mychat<- mychat %>%
                                    ))
 
 mychat$season<- factor(mychat$season)
+
+mychat %>% head(10) %>% kable() %>% kable_styling(font_size = 11, bootstrap_options = c("striped", 'condensed'))
 
 #3. EDA ----
 
@@ -58,7 +50,7 @@ mychat %>% group_by(season) %>%
            theme_minimal() +
            theme(legend.position = 'bottom')
 
-#3.2 Messages per day of week
+#3.2 Messages per day of week ----
 mychat %>% mutate(wday_num = wday(day), wday_name = weekdays(day)) %>%
            group_by(season, wday_num, wday_name) %>%
            count() %>%
@@ -115,7 +107,6 @@ mychat %>% mutate(text_len = nchar(text)) %>%
 
 #What are the most used emojis in chat?
 # LIBRARY FOR EMOJI PNG IMAGE FETCH FROM https://abs.twimg.com
-library(ggimage) # EMOJI RANKING
 
 emojiplot<- mychat %>% 
             unnest(c(emoji, emoji_name)) %>%
@@ -139,23 +130,23 @@ emojiplot %>% ggplot(aes(reorder(emoji_name, n), n)) +
 
 #What are the most used emojis in chat per user?
 emojiplot2<- mychat %>% 
-             unnest(c(emoji, emoji_name)) %>%
-             mutate(emoji = str_sub(emoji, end = 1))%>%
-             count(author, emoji, emoji_name, sort = TRUE) %>%
-             group_by(author) %>%
-             top_n(8, n) %>%
-             slice(1:8) %>%
-             mutate(emoji_url = map_chr(emoji, ~paste0('https://abs.twimg.com/emoji/v2/72x72/', 
-                                                        as.hexmode(utf8ToInt(.x)),'.png')))
+  unnest(c(emoji, emoji_name)) %>%
+  mutate(emoji = str_sub(emoji, end = 1))%>%
+  count(author, emoji, emoji_name, sort = TRUE) %>%
+  group_by(author) %>%
+  top_n(8, n) %>%
+  slice(1:8) %>%
+  mutate(emoji_url = map_chr(emoji, ~paste0('https://abs.twimg.com/emoji/v2/72x72/', 
+                                            as.hexmode(utf8ToInt(.x)),'.png')))
 emojiplot2 %>% ggplot(aes(reorder(emoji, -n), n)) +
-               geom_col(aes(fill = author, group = author), show.legend = FALSE, width = .20) +
-               geom_image(aes(image = emoji_url), size = .08) +
-               xlab('Emiji') +
-               ylab('Number of time emoji was used') +
-               facet_wrap(~author, ncol = 5, scales = 'free') +
-               ggtitle('Most used emoji by user') +
-               theme_minimal() +
-               theme(axis.text.x = element_blank())
+  geom_col(aes(fill = author, group = author), show.legend = FALSE, width = .20) +
+  geom_image(aes(image = emoji_url), size = .08) +
+  xlab('Emiji') +
+  ylab('Number of time emoji was used') +
+  facet_wrap(~author, ncol = 5, scales = 'free') +
+  ggtitle('Most used emoji by user') +
+  theme_minimal() +
+  theme(axis.text.x = element_blank())
 
 #3.6 Most used words ----
 useless_words<-c('il','lo','la','un','uno','una','quello','quella','quelli','nostro','vostro','di','quanto','che','se','sono',
@@ -197,3 +188,4 @@ mychat %>% unnest_tokens(input = text, output = word) %>%
            ggtitle('Most used words by user') +
            theme_minimal()
            
+
