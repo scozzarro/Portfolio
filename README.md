@@ -6,16 +6,15 @@ _Note: Data used in the projects (accessed under data directory) is for demonstr
 ## Contents
 
 - ### Machine Learning
-
+	-  __[Movie recomandation case study](https://github.com/scozzarro/Portfolio/tree/main/movie_recomandation_case_study)__: In this project a movie rating prediction and recomandation system was created using the __[MovieLens 10M Dataset](http://movielens.org)__.
 	
-
-	_Tools: tidyverse, H2O.ai, Caret, Modeltime, ggplot 
+Tools: tidyverse, H2O.ai, Caret, Modeltime, ggplot 
 
 - ### Natural Language Processing
 	-  __[Whatsapp sentiment analysis](https://github.com/scozzarro/Portfolio/tree/main/Whatsapp_chat_data_analysis_project)__: In this project I analyzed a conversation on whatsapp with my friend. Sentiment analysis on text and emoticon were performed. 
 	
 
-	_Tools: rwhatsapp, rvest, textdata, lexicon
+Tools: rwhatsapp, rvest, textdata, lexicon
 
 - ### Data Analysis and Visualisation
 
