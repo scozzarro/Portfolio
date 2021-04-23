@@ -11,7 +11,7 @@ _Note: Data used in the projects (accessed under data directory) is for demonstr
 Tools: tidyverse, H2O.ai, Caret, Modeltime, ggplot 
 
 - ### Natural Language Processing
-	-  __[Whatsapp sentiment analysis](https://github.com/scozzarro/Portfolio/tree/main/Whatsapp_chat_data_analysis_project)__: In this project I analyzed a conversation on whatsapp with my friend. Sentiment analysis on text and emoticon were performed. 
+	-  __[Whatsapp sentiment analysis](https://github.com/scozzarro/Portfolio/tree/main/Whatsapp_chat_data_analysis_project)__: In this project I analyzed a conversation on 	 whatsapp with my friend. Sentiment analysis on text and emoticon were performed. 
 	
 
 Tools: rwhatsapp, rvest, textdata, lexicon
@@ -20,6 +20,7 @@ Tools: rwhatsapp, rvest, textdata, lexicon
 
 	- __R__ 
 		-  __[Bellabeat](https://bellabeat.com/)__ Data analysis case study: Analyzing public fitness tracket __[data](https://www.kaggle.com/arashnic/fitbit)__ to 			discover possible trend and insight to improve Bellabeat products and marketing campaign. 
+		-  __[HR data analysis](https://github.com/scozzarro/Portfolio/tree/main/hr_employee_attriction_case_study)__: Analyzing hr data for company gender 			equality.
 	
 	- __Tableau__
 		
