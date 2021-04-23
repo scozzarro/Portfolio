@@ -1,0 +1,241 @@
+---
+title: "HR data analysis and contract termination prediction"
+author: "Gabriel Scozzarro"
+Date: "26/12/2020"
+output: pdf_document
+mainfont: Arial
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1.0 Introduction
+
+```{r lib, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE}
+library(tidyverse)
+library(corrplot)
+#library(kableExtra)
+library(scales)
+library(lubridate)
+library(reshape2)
+library(plyr)
+library(skimr)
+```
+
+## 2.0 Preparation and reading data
+
+Data was imported from the set contained inside the file HRDataset_v14.csv
+
+```{r import data, echo = FALSE}
+hr_data<- read.csv("Data/HRDataset_v14.csv")
+```
+
+```{r summary, echo = FALSE, out.width = '50%'}
+skim_without_charts(hr_data)
+```
+
+```{r fixing, echo = FALSE}
+hr_data$ManagerID[is.na(hr_data$ManagerID)]<- 0
+
+hr_data$MaritalDesc<- as_factor(hr_data$MaritalDesc)
+
+useless_col<- c("GenderID", "MaritalStatusID")
+hr_data<- hr_data[, -which(colnames(hr_data) %in% useless_col)]
+
+hr_data$DateofHire<- as.POSIXlt(hr_data$DateofHire,format="%m/%d/%Y")
+hr_data$DateofHire<- as.Date(hr_data$DateofHire)
+
+hr_data$DateofTermination<- as.POSIXlt(hr_data$DateofTermination,format="%m/%d/%Y")
+hr_data$DateofTermination<- as.Date(hr_data$DateofTermination)
+
+hr_data$DOB<- as.Date(hr_data$DOB, "%m/%d/%y")
+hr_data$DOB<- as.Date(ifelse(hr_data$DOB > "2020-01-01", format(hr_data$DOB, "19%y-%m-%d"), format(hr_data$DOB)))
+
+hr_data$Age<- year(Sys.Date())-year(hr_data$DOB)
+hr_data$Sex<- stringr::str_trim(hr_data$Sex)
+```
+
+## 3.0 EDA
+
+### 3.1 Gender analysis
+
+We start analyzing the employees presence by age and gender. The women are more present by `r n_distinct(hr_data$EmpID[which(hr_data$Sex == 'F')]) - n_distinct(hr_data$EmpID[which(hr_data$Sex == 'M')])` units. Women an men has the same average age is which is `r round(mean(hr_data$Age[which(hr_data$Sex == 'F')]))` 
+
+```{r gender analysis, echo = FALSE, out.width = '50%' }
+hr_data %>% ggplot(aes(Sex, fill = Sex)) +
+            geom_bar(stat = "count") +
+            ggtitle("Gender presence") +
+            theme_minimal() +
+            theme(legend.position =  "none")
+
+  
+hr_data %>% ggplot(aes(Age, fill = Sex)) +
+            geom_bar(stat = 'count') +
+            facet_wrap(~Sex) +
+            labs(title = 'Age distribution by gender') +
+            theme_minimal()
+            
+```
+\pagebreak
+
+The gender presence by role is as follows:
+
+```{r gender analysis 2, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE }
+
+all_roles = unique(hr_data$Position)
+hr_data$Position = factor(hr_data$Position, levels = all_roles)
+hr_data$order = as.numeric(hr_data$Position)/100 
+
+hr_data %>% filter(!is.na(DateofTermination)) %>%
+            ggplot(aes(x = factor(order), fill = Sex)) + 
+            geom_bar(subset=.(Sex == "M")) + 
+            geom_bar(subset=.(Sex == "F"), aes(y=..count..)) + 
+            scale_x_discrete(labels = all_roles) +
+            xlab("Role") +
+            coord_flip() +
+            theme(text = element_text(size = 16)) +
+            ggtitle("Gender presence by role up to date") +
+            theme_minimal()
+
+```
+
+Surprisingly there is a total presence of woman as production manager and sales manager instead men are almost totally prevalent in IT based department.
+
+\pagebreak
+The enrollment trend by gender from 2008 to 2016 was very much in favor of women.
+The enrollment since the incorporation was as follows:
+
+
+```{r gender analysis 3, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '50%'}
+
+hr_data %>% filter(year(DateofHire) <= 2009) %>%
+            ggplot(aes(x = factor(order), fill = Sex)) + 
+            geom_bar(subset=.(Sex == "M")) + 
+            geom_bar(subset=.(Sex == "F"), aes(y=..count..)) + 
+            scale_x_discrete(labels = all_roles) +
+            xlab("Role") +
+            coord_flip() +
+            theme(text = element_text(size = 16)) +
+            facet_wrap(~year(DateofHire), nrow = 1) +
+            labs(title = "Enrollment by role and gender since the incorporation", subtitle = 'Year 2006 - 2009') +
+            theme_minimal()
+
+hr_data %>% filter(year(DateofHire) > 2009 & year(DateofHire) <= 2013 ) %>%
+            ggplot(aes(x = factor(order), fill = Sex)) + 
+            geom_bar(subset=.(Sex == "M")) + 
+            geom_bar(subset=.(Sex == "F"), aes(y=..count..)) + 
+            scale_x_discrete(labels = all_roles) +
+            xlab("Role") +
+            coord_flip() +
+            theme(text = element_text(size = 16)) +
+            facet_wrap(~year(DateofHire), nrow = 1) +
+            labs(title = "Enrollment by role and gender since the incorporation", subtitle = 'Year 2010 - 2013') +
+            theme_minimal()
+
+hr_data %>% filter(year(DateofHire) > 2013) %>%
+            ggplot(aes(x = factor(order), fill = Sex)) + 
+            geom_bar(subset=.(Sex == "M")) + 
+            geom_bar(subset=.(Sex == "F"), aes(y=..count..)) + 
+            scale_x_discrete(labels = all_roles) +
+            xlab("Role") +
+            coord_flip() +
+            theme(text = element_text(size = 16)) +
+            facet_wrap(~year(DateofHire), nrow = 1) +
+            labs(title = "Enrollment by role and gender since the incorporation", subtitle = 'Year 2014 - 2018') +
+            theme_minimal()
+
+hr_data %>% group_by(Sex, year = year(DateofHire)) %>%
+            dplyr::summarise(n = n()) %>%
+            ggplot(aes(year, n, color = Sex)) +
+            geom_line(aes(linetype=Sex), size = 1) +
+            geom_point(size = 2) +
+            ggtitle("Hiring trend by gender") +
+            theme_minimal()
+
+```
+
+\pagebreak
+There are some disparity in salary for some roles, some times in favor of women some time the opposite. Over all if we take the whole company in consideration the gap is near to zero.
+
+```{r salary gender analysis, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE }
+
+hr_data %>% group_by(Sex, Position) %>%
+            dplyr::summarise(avgsal = mean(Salary)) %>%
+            ggplot(aes(avgsal, Position, fill = Sex)) +
+            geom_bar(stat = "identity", position = "dodge") +
+            ggtitle("Average salary by gender and role") +
+            theme_minimal()
+
+```
+
+\pagebreak
+Women has the highest rate of contract termination with the 3 main reasons in other position research, more money and unhappy in the company.
+```{r contract gender analysis, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '50%' }
+
+hr_data %>% filter(!is.na(DateofTermination)) %>%
+            group_by(Sex) %>%
+            dplyr::summarise(n = n()) %>%
+            ggplot(aes(n, Sex, fill = Sex)) +
+            geom_bar(stat = "identity") +
+            ggtitle("Employes contract terminated by gender") +
+            theme_minimal() +
+            theme(legend.position = "none")
+
+hr_data %>% filter(!is.na(DateofTermination)) %>%
+            group_by(Sex, TermReason) %>%
+            dplyr::summarise(n = n()) %>%
+            ggplot(aes(n, TermReason, fill = Sex)) +
+            geom_bar(stat = "identity", position = "dodge") +
+            ggtitle("Contract termination reasons by gender") +
+            theme_minimal()
+
+```
+
+The most effective recruitment source for women and for men was the same (Indeed). 
+
+
+```{r Recruitment gender analysis, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '90%' }
+hr_data %>% group_by(Sex, RecruitmentSource) %>%
+            dplyr::summarise(n = n()) %>%
+            ggplot(aes(n, RecruitmentSource, fill = Sex)) +
+            geom_bar(stat = "identity", position = "dodge") +
+            ggtitle("Recruitment source performance by gender") +
+            theme_minimal()
+
+```
+
+\pagebreak
+Satisfaction by gender was as follows:
+
+
+```{r satisfaction gender analysis, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '50%' }
+
+hr_data %>% group_by(Sex) %>%
+            ggplot(aes(Sex, EmpSatisfaction, fill = Sex)) +
+            geom_violin(width=1, alpha = 0.7) +
+            geom_boxplot(width=0.1, color="black", alpha=0.2) +
+            theme_minimal() +
+            theme(legend.position="none") +
+            ggtitle("Employes satisfaction by gender")
+
+hr_data$Salary_level<- 0
+
+for (i in 1:nrow(hr_data)) {
+  if (hr_data$Salary[i] > mean(hr_data$Salary) + 2*sd(hr_data$Salary)) {
+    hr_data$Salary_level[i]<- "High"
+  }
+  else if (hr_data$Salary[i] < mean(hr_data$Salary) + sd(hr_data$Salary)) {
+    hr_data$Salary_level[i]<- "Medium"
+  } 
+  else {
+    hr_data$Salary_level[i]<- "Low"
+  }
+  }
+
+hr_data %>% group_by(Sex, Salary_level) %>%
+            ggplot(aes(Salary_level, EmpSatisfaction, fill = Sex)) +
+            geom_boxplot() +
+            ggtitle("Employes satisfaction level by gender and salary level")
+
+```
