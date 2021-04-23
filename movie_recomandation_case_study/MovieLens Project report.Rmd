@@ -1,0 +1,412 @@
+# MovieLens Project
+Author: Gabrielmaria Scozzarro ;
+Date:21/05/2020
+
+## Executive summary
+
+GroupLens is a research lab in the Department of Computer Science and Engineering at the University of Minnesota. 
+The GroupLens team has collected and made available rating data sets from the MovieLens web site (http://movielens.org).
+The data sets were collected over various periods of time and for this reason it is very suitable for the implementation of machine learning algorythm. those algorithms improve automatically through data or what we can call "experience". It is considered as a subset of AI. Machine learning algorithms are based on well known mathematical model feed with collected data, known as "training data", in order to make predictions or decisions without being explicitly programmed to do so. Machine learning algorithms are used in a wide variety of applications,spanning from IT to robotics application, where it is difficult or infeasible to develop conventional algorithms to perform the needed tasks.
+
+The goal of this project is to build a rating recommender system usign the machine learning feeded with the MovieLens data set.
+This report will guide you through the methods and the results of this project. For an easy and immediate comparison with other approach and for quality estimate we will use the residual mean squared error (RMSE) as the main KPI with a target value of 0.8641.
+
+ 
+
+## Methods and analysis
+
+We use the MovieLens 10M dataset that consists of 10M observed ratings from almost 70K different users applied to 10K different movies. We already diveded the data set in 2 part with a proportion of 90/10 for train_set and test_set respectively.
+
+
+```R
+train_set<- readRDS(file = "edx.rds")
+test_set<- readRDS(file = "validation.rds")
+```
+
+To perform a preliminar analysis of the dataset we use the following packages:
+
+
+```R
+library(tidyverse)
+library(lubridate)
+```
+
+and options:
+
+
+```R
+options(repr.plot.width=18, repr.plot.height=9)
+```
+
+The data structure is:
+
+
+```R
+dim(train_set)
+```
+
+
+<style>
+.list-inline {list-style: none; margin:0; padding: 0}
+.list-inline>li {display: inline-block}
+.list-inline>li:not(:last-child)::after {content: "\00b7"; padding: 0 .5ex}
+</style>
+<ol class=list-inline><li>9000055</li><li>6</li></ol>
+
+
+
+
+```R
+head(train_set, 10)
+```
+
+
+<table>
+<caption>A data.frame: 10 × 6</caption>
+<thead>
+	<tr><th></th><th scope=col>userId</th><th scope=col>movieId</th><th scope=col>rating</th><th scope=col>timestamp</th><th scope=col>title</th><th scope=col>genres</th></tr>
+	<tr><th></th><th scope=col>&lt;int&gt;</th><th scope=col>&lt;dbl&gt;</th><th scope=col>&lt;dbl&gt;</th><th scope=col>&lt;int&gt;</th><th scope=col>&lt;chr&gt;</th><th scope=col>&lt;chr&gt;</th></tr>
+</thead>
+<tbody>
+	<tr><th scope=row>1</th><td>1</td><td>122</td><td>5</td><td>838985046</td><td>Boomerang (1992)                         </td><td>Comedy|Romance                            </td></tr>
+	<tr><th scope=row>2</th><td>1</td><td>185</td><td>5</td><td>838983525</td><td>Net, The (1995)                          </td><td>Action|Crime|Thriller                     </td></tr>
+	<tr><th scope=row>4</th><td>1</td><td>292</td><td>5</td><td>838983421</td><td>Outbreak (1995)                          </td><td>Action|Drama|Sci-Fi|Thriller              </td></tr>
+	<tr><th scope=row>5</th><td>1</td><td>316</td><td>5</td><td>838983392</td><td>Stargate (1994)                          </td><td>Action|Adventure|Sci-Fi                   </td></tr>
+	<tr><th scope=row>6</th><td>1</td><td>329</td><td>5</td><td>838983392</td><td>Star Trek: Generations (1994)            </td><td>Action|Adventure|Drama|Sci-Fi             </td></tr>
+	<tr><th scope=row>7</th><td>1</td><td>355</td><td>5</td><td>838984474</td><td>Flintstones, The (1994)                  </td><td>Children|Comedy|Fantasy                   </td></tr>
+	<tr><th scope=row>8</th><td>1</td><td>356</td><td>5</td><td>838983653</td><td>Forrest Gump (1994)                      </td><td>Comedy|Drama|Romance|War                  </td></tr>
+	<tr><th scope=row>9</th><td>1</td><td>362</td><td>5</td><td>838984885</td><td>Jungle Book, The (1994)                  </td><td>Adventure|Children|Romance                </td></tr>
+	<tr><th scope=row>10</th><td>1</td><td>364</td><td>5</td><td>838983707</td><td>Lion King, The (1994)                    </td><td>Adventure|Animation|Children|Drama|Musical</td></tr>
+	<tr><th scope=row>11</th><td>1</td><td>370</td><td>5</td><td>838984596</td><td>Naked Gun 33 1/3: The Final Insult (1994)</td><td>Action|Comedy                             </td></tr>
+</tbody>
+</table>
+
+
+
+A deeper analysis on the rating values:
+
+
+```R
+summary(train_set$rating)
+```
+
+
+       Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+      0.500   3.000   4.000   3.512   4.000   5.000 
+
+
+To perform an analysis of the rating behavior through the years, on the train_set we convert the time stamp in DateTime format:
+
+
+
+```R
+train_set<- train_set %>%
+  mutate(timestamp = as_datetime(timestamp))
+
+train_set %>% 
+  mutate(year = year(timestamp)) %>%
+  group_by(year) %>%
+  summarize(n_rating = n()) %>%
+  print(n = 15)
+```
+
+    [90m# A tibble: 15 x 2[39m
+        year n_rating
+       [3m[90m<dbl>[39m[23m    [3m[90m<int>[39m[23m
+    [90m 1[39m  [4m1[24m995        2
+    [90m 2[39m  [4m1[24m996   [4m9[24m[4m4[24m[4m2[24m772
+    [90m 3[39m  [4m1[24m997   [4m4[24m[4m1[24m[4m4[24m101
+    [90m 4[39m  [4m1[24m998   [4m1[24m[4m8[24m[4m1[24m634
+    [90m 5[39m  [4m1[24m999   [4m7[24m[4m0[24m[4m9[24m893
+    [90m 6[39m  [4m2[24m000  1[4m1[24m[4m4[24m[4m4[24m349
+    [90m 7[39m  [4m2[24m001   [4m6[24m[4m8[24m[4m3[24m355
+    [90m 8[39m  [4m2[24m002   [4m5[24m[4m2[24m[4m4[24m959
+    [90m 9[39m  [4m2[24m003   [4m6[24m[4m1[24m[4m9[24m938
+    [90m10[39m  [4m2[24m004   [4m6[24m[4m9[24m[4m1[24m429
+    [90m11[39m  [4m2[24m005  1[4m0[24m[4m5[24m[4m9[24m277
+    [90m12[39m  [4m2[24m006   [4m6[24m[4m8[24m[4m9[24m315
+    [90m13[39m  [4m2[24m007   [4m6[24m[4m2[24m[4m9[24m168
+    [90m14[39m  [4m2[24m008   [4m6[24m[4m9[24m[4m6[24m740
+    [90m15[39m  [4m2[24m009    [4m1[24m[4m3[24m123
+    
+
+
+```R
+train_set %>% 
+  mutate(year = year(timestamp)) %>%
+  group_by(year) %>%
+  summarize(n_rating = n()) %>%
+  ggplot(aes(year,n_rating)) +
+  geom_area( fill="#69b3a2", alpha=0.4) +
+  geom_line(color="#69b3a2", size=2) +
+  geom_point(size=3, color="#69b3a2") +
+  ggtitle("Number of rates per year")
+```
+
+
+![png](output_18_0.png)
+
+
+We can oberser that in the train_set we have 3 spikes 1996, 2000 and 2005. 
+
+Here’s a distribution of the user ratings in the train_set:
+
+
+```R
+train_set %>%
+  group_by(rating) %>%
+  summarize(dens = n()) %>%
+  ggplot(aes(rating,dens)) +
+  geom_area( fill="#69b3a2", alpha=0.4) +
+  geom_line(color="#69b3a2", size=2) +
+  geom_point(size=3, color="#69b3a2") +
+  ggtitle("Rating distribution")
+```
+
+
+![png](output_21_0.png)
+
+
+It appears that users are quite generous in their ratings. In fact, as we seen in a previous analysis the mean rate is 3.51, most of the rates are on the interval 3-5 with a prevelance for round value. 
+We can also investigate how much users are willing to rate a movie like this:
+
+
+```R
+length(unique(train_set$userId))
+```
+
+
+69878
+
+
+
+```R
+train_set%>%
+  group_by(userId) %>%
+  summarize(n_rating = n()) %>%
+  summary()
+```
+
+
+         userId         n_rating     
+     Min.   :    1   Min.   :  10.0  
+     1st Qu.:17943   1st Qu.:  32.0  
+     Median :35799   Median :  62.0  
+     Mean   :35782   Mean   : 128.8  
+     3rd Qu.:53620   3rd Qu.: 141.0  
+     Max.   :71567   Max.   :6616.0  
+
+
+There are 69878 unic users. Each user rated at least 10 movies, so the distribution should not be caused just by chance variance in the quality of movies.
+
+We can now explore the genres feature like this:
+
+
+```R
+train_set%>%
+  group_by(genres) %>%
+  summarize(movies_per_genre = n()) %>%
+  top_n(10, movies_per_genre)
+```
+
+
+<table>
+<caption>A tibble: 10 × 2</caption>
+<thead>
+	<tr><th scope=col>genres</th><th scope=col>movies_per_genre</th></tr>
+	<tr><th scope=col>&lt;chr&gt;</th><th scope=col>&lt;int&gt;</th></tr>
+</thead>
+<tbody>
+	<tr><td>Action|Adventure|Sci-Fi  </td><td>219938</td></tr>
+	<tr><td>Action|Adventure|Thriller</td><td>149091</td></tr>
+	<tr><td>Comedy                   </td><td>700889</td></tr>
+	<tr><td>Comedy|Drama             </td><td>323637</td></tr>
+	<tr><td>Comedy|Drama|Romance     </td><td>261425</td></tr>
+	<tr><td>Comedy|Romance           </td><td>365468</td></tr>
+	<tr><td>Crime|Drama              </td><td>137387</td></tr>
+	<tr><td>Drama                    </td><td>733296</td></tr>
+	<tr><td>Drama|Romance            </td><td>259355</td></tr>
+	<tr><td>Drama|Thriller           </td><td>145373</td></tr>
+</tbody>
+</table>
+
+
+
+We can see that movies can be categorized using one or more genre and which are the most present genres in the train_set.
+We can also compute the average and standard error for each category and find the category with the highest or lowest average rating: 
+
+
+```R
+train_set %>% group_by(genres) %>%
+  summarize(n_rating = n(), avg_rating = mean(rating), se_rating = sd(rating)/sqrt(n())) %>%
+  filter(n_rating >= 50000) %>% 
+  mutate(genres = reorder(genres, avg_rating)) %>%
+  ggplot(aes(x = genres, y = avg_rating, ymin = avg_rating - 2*se_rating, ymax = avg_rating + 2*se_rating)) + 
+  geom_point(color = "#69b3a2" ) +
+  geom_errorbar(color = "#69b3a2") + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ggtitle("Average and standard error for each category")
+
+```
+
+
+![png](output_28_0.png)
+
+
+With a filter that keeps only genres with more than 50K ratings we can appreciate that Horror movies has the lowest average ratings and Comedy|Crime|Drama the highest.
+Now we can investigate which movie title has the best ratings like this:
+
+
+```R
+length(unique(train_set$movieId))
+```
+
+
+10677
+
+
+
+```R
+train_set %>% group_by(movieId, title) %>%
+    summarize(count = n()) %>%
+    arrange(desc(count)) %>%
+    head(10)
+```
+
+
+<table>
+<caption>A grouped_df: 10 × 3</caption>
+<thead>
+	<tr><th scope=col>movieId</th><th scope=col>title</th><th scope=col>count</th></tr>
+	<tr><th scope=col>&lt;dbl&gt;</th><th scope=col>&lt;chr&gt;</th><th scope=col>&lt;int&gt;</th></tr>
+</thead>
+<tbody>
+	<tr><td>296</td><td>Pulp Fiction (1994)                                         </td><td>31362</td></tr>
+	<tr><td>356</td><td>Forrest Gump (1994)                                         </td><td>31079</td></tr>
+	<tr><td>593</td><td>Silence of the Lambs, The (1991)                            </td><td>30382</td></tr>
+	<tr><td>480</td><td>Jurassic Park (1993)                                        </td><td>29360</td></tr>
+	<tr><td>318</td><td>Shawshank Redemption, The (1994)                            </td><td>28015</td></tr>
+	<tr><td>110</td><td>Braveheart (1995)                                           </td><td>26212</td></tr>
+	<tr><td>457</td><td>Fugitive, The (1993)                                        </td><td>25998</td></tr>
+	<tr><td>589</td><td>Terminator 2: Judgment Day (1991)                           </td><td>25984</td></tr>
+	<tr><td>260</td><td>Star Wars: Episode IV - A New Hope (a.k.a. Star Wars) (1977)</td><td>25672</td></tr>
+	<tr><td>150</td><td>Apollo 13 (1995)                                            </td><td>24284</td></tr>
+</tbody>
+</table>
+
+
+
+Among the 10677 different movies rated from 1995 to 2019 these are the top 10 most rated. 
+
+### Recommendation system 
+
+For a recommendation system we need to identify the most important features that can contain helpful information to predict the rating any given user will assign to any movie. We start defining the RMSE formula needed for the quality assestment of the procces we are going to build. We choose to apply a collaborative filtering approach with a Matrix Factorization to increment the accuracy of the prediction.
+
+As know collaborative filtering is a method for automatic predictions of users interests by collecting preferences or taste information from many other users. The reasoning behind this approach is that if a user A has the same sentiment as a user B on an matter, A is more likely to have B's opinion on another matter compared to a randomly chosen person. Note that the most fascinating thing about this approach is that these predictions are specific to the user, but use information is harvested from many users.
+
+To accomplish our goal we will make use of the recosystem package which is an R wrapper of the LIBMF, an open source library for recommender system using parallel matrix factorization. In addition this packages allow us to speedup all processes using parallel computation on many thread.
+
+
+```R
+library(recosystem)
+```
+
+Defining RMSE:
+
+$ RMSE=\sqrt{\frac{1}{N}\sum_{u,i}(\hat{y}_{u,i}-y_{u,i})^2}$
+
+
+```R
+RMSE<- function(true_ratings, predicted_ratings){
+  sqrt(mean((true_ratings - predicted_ratings)^2))
+}
+```
+
+Now we can convert the 2 data set in the recosystem desired imput format:
+
+
+```R
+train_data <-  with(train_set, data_memory(user_index = userId, item_index = movieId, rating     = rating))
+
+test_data  <-  with(test_set,  data_memory(user_index = userId, item_index = movieId, rating     = rating))
+```
+
+We reate a model object or you can call it a Reference Class object in R by calling the function Reco() from the recosystem package.
+
+
+```R
+r <-  recosystem::Reco()
+```
+
+Recosystem allows to optimize train parameters calling the $tune option:
+
+
+```R
+opts <- r$tune(train_data, opts = list(dim = c(10, 20, 30), 
+                                       lrate = c(0.1, 0.2),
+                                       costp_l2 = c(0.01, 0.1), 
+                                       costq_l2 = c(0.01, 0.1),
+                                       nthread  = 6, niter = 10))
+```
+
+Finalyy we can train the algorithm with the train_data we prepared before:
+
+
+```R
+r$train(train_data, opts = c(opts$min, nthread = 6, niter = 20))
+```
+
+    iter      tr_rmse          obj
+       0       0.9684   1.1944e+07
+       1       0.8729   9.8876e+06
+       2       0.8380   9.1670e+06
+       3       0.8153   8.7386e+06
+       4       0.8002   8.4605e+06
+       5       0.7888   8.2675e+06
+       6       0.7794   8.1199e+06
+       7       0.7713   7.9989e+06
+       8       0.7645   7.9034e+06
+       9       0.7584   7.8195e+06
+      10       0.7533   7.7557e+06
+      11       0.7486   7.6977e+06
+      12       0.7444   7.6465e+06
+      13       0.7406   7.6035e+06
+      14       0.7371   7.5634e+06
+      15       0.7341   7.5306e+06
+      16       0.7311   7.4978e+06
+      17       0.7284   7.4705e+06
+      18       0.7259   7.4436e+06
+      19       0.7236   7.4204e+06
+    
+
+## Results
+
+Now that the algorythm is trained we can compute the predicted value using the test_data:
+
+
+```R
+y_hat <-  r$predict(test_data, out_memory())
+```
+
+And verify the RMSE for comparison:
+
+
+```R
+RMSE(test_set$rating, y_hat)
+```
+
+
+0.782329091466384
+
+
+The **RMSE** is therefore **0.78** wich is far below the target of **0.86**
+
+As espected the algorythm built with the recosystem package perform very well for the goal we set up at the beginning. In fact, we have been successful in reduce the target RMSE by **0.08**.
+
+## Conclusion
+
+The easiest try to improve our recommendation system could be enrich the data set used with new and different data for example lenght of the movie or box offices.
+
+An advance improvment can be obtained combining both content based and collaborative filtering methods:
+
+Rating matrix can be also compressed by a neural network. The so called autoencoder is very similar to the matrix factorization. Deep autoencoders, with multiple hidden layers and nonlinearities are more powerful but harder to train. Neural net can be also used to preprocess item attributes so we can combine content based and collaborative approaches.
