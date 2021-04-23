@@ -6,8 +6,9 @@ _Note: Data used in the projects (accessed under data directory) is for demonstr
 ## Contents
 
 - ### Machine Learning
-	-  __[Movie recomandation case study](https://github.com/scozzarro/Portfolio/tree/main/movie_recomandation_case_study)__: In this project a movie rating prediction and recomandation system was created using the __[MovieLens 10M Dataset](http://movielens.org)__.
-	-  __[FPS winning prediction system](https://github.com/scozzarro/Portfolio/tree/main/FPS_game_winning_prediction_case_study)__: In this project I created a winning prediction system for a well-known online game, using deep neural network technique. 
+	-  __[Movie recomandation case study](https://github.com/scozzarro/Portfolio/tree/main/movie_recomandation_case_study)__: In this project a movie rating prediction and 	recomandation system was created using the __[MovieLens 10M Dataset](http://movielens.org)__.
+	-  __[FPS winning prediction system](https://github.com/scozzarro/Portfolio/tree/main/FPS_game_winning_prediction_case_study)__: In this project I created a winning 		prediction system for a well-known online game, using deep neural network technique.
+	-  __[Hotel reservation prediction project](https://github.com/scozzarro/Portfolio/tree/main/Hotel_reservation_prediction_case_study)__: In this work I creat a 		prediction system for hotel reservation. 
 	
 Tools: tidyverse, H2O.ai, Caret, Modeltime, ggplot 
 
