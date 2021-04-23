@@ -19,7 +19,7 @@ Tools: rwhatsapp, rvest, textdata, lexicon
 - ### Data Analysis and Visualisation
 
 	- __R__ 
-		-  __[Bellabeat](https://bellabeat.com/)__ Data analysis case study: Analyzing public fitness tracket __[data](https://www.kaggle.com/arashnic/fitbit)__ to 			discover possible trend and insight to improve Bellabeat products and marketing campaign. 
+		-  __[Bellabeat data analysis](https://github.com/scozzarro/Portfolio/tree/main/Bellabeat_capstone_project)__: Analyzing public fitness tracket __[data](https://www.kaggle.com/arashnic/fitbit)__ to 			discover possible trend and insight to improve Bellabeat products and marketing campaign. 
 		-  __[HR data analysis](https://github.com/scozzarro/Portfolio/tree/main/hr_employee_attriction_case_study)__: Analyzing hr data for company gender 			equality.
 	
 	- __Tableau__
