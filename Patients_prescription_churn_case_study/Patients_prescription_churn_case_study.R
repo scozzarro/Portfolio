@@ -104,14 +104,20 @@ purchase_data_Apr_Sep %>% group_by(store_ref_id) %>%
 
 
 ## 3.3 Customer analysis ----
-purchase_data_Apr_Sep %>% group_by(month = month(created_at_bill, label = TRUE)) %>%
-                          summarise(customer_distinct = n_distinct(customer_ref_id)) %>%
-                          ggplot(aes(month, customer_distinct, fill = month)) +
-                          geom_bar(stat = 'identity') +
-                          scale_fill_brewer(palette = 'Set3') +
-                          theme_minimal() +
+purchase_data_Apr_Sep %>% group_by(customer_ref_id) %>%
+                          summarise(first_bill = min(month(created_at_bill, label = TRUE))) %>%
+                          ggplot(aes(first_bill, fill = first_bill)) +
+                          geom_bar(stat = 'count') +
+                          scale_fill_brewer(palette = 'Set2') +
+                          theme_light() +
                           theme(legend.position = 'none') +
-                          labs(title = 'Distinct customer by month')
+                          xlab('New customers') +
+                          labs(title = 'New customer per month')
+
+different_store_visit<- purchase_data_Apr_Sep %>% group_by(customer_ref_id) %>%
+                                                  summarise(store_visited = n_distinct(store_ref_id)) %>%
+                                                  arrange(desc(store_visited))
+
   
 purchase_data_Apr_Sep %>% ggplot(aes(payment_method, fill = payment_method)) +
                           geom_bar(stat = 'count') +
@@ -120,6 +126,18 @@ purchase_data_Apr_Sep %>% ggplot(aes(payment_method, fill = payment_method)) +
                           theme(legend.position = 'none') +
                           xlab('Payment method') +
                           labs(title = 'Payment method frequency')
+
+purchase_data_Apr_Sep %>% group_by(payment_method) %>%
+                          summarise(avg_payment = mean(total_spend_bill)) %>%
+                          arrange(desc(avg_payment)) %>%
+                          ggplot(aes(payment_method, avg_payment, fill = payment_method)) +
+                          geom_bar(stat = 'identity') +
+                          scale_fill_brewer(palette = 'Set2') +
+                          theme_minimal() +
+                          theme(legend.position = 'none') +
+                          xlab('Payment method') +
+                          ylab('Average transaction') +
+                          labs(title = 'Average transaction per payment method')
 
 ## 3.4 Doctor analysis ----                          
 number_of_doctors<- n_distinct(purchase_data_Apr_Sep$doctor_ref_id)
@@ -136,10 +154,8 @@ doctor_drugs_cor<- purchase_data_Apr_Sep %>% group_by(doctor_ref_id) %>%
                                                        acute_drugs = sum(quantity_acute),
                                                        h1_drugs = sum(quantity_h1))
 
-n_distinct(purchase_data_Apr_Sep$store_ref_id)
-purchase_data_Apr_Sep %>% group_by(customer_ref_id) %>%
-                          summarise(store_visited = n_distinct(store_ref_id)) %>%
-                          arrange(desc(store_visited))
+
+
 
 #4.0 Prediction model ----
 
@@ -252,7 +268,7 @@ test_h2o<- as.h2o(data_model_test)
 x_h2o<- c(1:14)
 y_h2o<- 15
 
-###4.5.1 H2o automachine learning 
+###4.5.1 H2o auto machine learning 
 
 h2o_aml <- h2o.automl(x = x_h2o, y = y_h2o,
                       training_frame = train_h20,
@@ -271,3 +287,14 @@ h2o_aml_lb
 h2o_aml_pred <- h2o.predict(h2o_aml@leader, validation_h20[,1:14])
 
 h2o.explain(h2o_aml@leader, validation_h20)
+
+leader_perf<- h2o.performance(h2o_aml@leader, validation_h20)
+
+leader_perf
+
+h2o.confusionMatrix(h2o_aml@leader)
+
+plot(leader_perf, type = 'roc')
+
+plot(leader_perf, type = 'pr')
+
