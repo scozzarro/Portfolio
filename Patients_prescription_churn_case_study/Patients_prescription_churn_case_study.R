@@ -298,3 +298,4 @@ plot(leader_perf, type = 'roc')
 
 plot(leader_perf, type = 'pr')
 
+h2o.shutdown(prompt = FALSE)

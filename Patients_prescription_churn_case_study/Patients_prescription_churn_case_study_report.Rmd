@@ -399,11 +399,13 @@ h2o.confusionMatrix(h2o_aml@leader)
 plot(leader_perf, type = 'roc')
 
 plot(leader_perf, type = 'pr')
+
+h2o.shutdown(prompt = FALSE)
 ```
 
 ## 6.0 Conclusion
 
-Churn Prediction was done performed and results were acceptable. The data set creation and feature engineering were the complicated part of this project. Higher accuracy cannot be achieved simply in this type of data set. Training the previous month data set, we can predict the next month’s customers’ status in churn prediction.
+Churn Prediction was done performed and results were acceptable. The data set creation and feature engineering were the complicated part of this project. Higher accuracy cannot be achieved simply in this type of data set. Training the previous month data set, we can predict the next months customers status in churn prediction.
 
 ## 7.0 Future work
 Since the unbalanced nature of the data provide and the impossibility to gather new, a synthetic data augmentation process can be applied using for example ROSE technique.
