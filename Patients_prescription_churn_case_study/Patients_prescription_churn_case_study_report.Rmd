@@ -10,30 +10,24 @@ knitr::opts_chunk$set(echo = FALSE,  dev = "cairo_pdf")
 ```
 
 ## 1.0 Introduction
-This case study origin from the problem that many retail shops has, that is customer retention.
-One way to tackle this problem is understand when an already acquired customer is churning. 
 
-But what is customer churn? Customer churn refers to when a customer (player, subscriber, user, etc. depending on industry) ceases his or her relationship with the company. Online businesses typically treat a customer as churned once a particular amount of time has elapsed since the customer’s last interaction with the site or service. The full cost of customer churn includes both lost revenue and the marketing costs involved with replacing those customers with new ones. Reducing customer churn is a key business goal of every online business.
+This case study origin from the problem that many retail shops has, that is customer retention. One way to tackle this problem is understand when an already acquired customer is churning.
 
-The ability to predict that a particular customer is at a high risk of churning, while there is still time to do something about it, represents a huge additional potential revenue source for every online business. Besides the direct loss of revenue that results from a customer abandoning the business, the costs of initially acquiring that customer may not have already been covered by the customer’s spending to date. (In other words, acquiring that customer may have actually been a losing investment.) Furthermore, it is always more difficult and expensive to acquire a new customer than it is to retain current paying customers.
+But what is customer churn? Customer churn refers to when a customer (player, subscriber, user, etc. depending on industry) ceases his or her relationship with the company. Online businesses typically treat a customer as churned once a particular amount of time has elapsed since the customer's last interaction with the site or service. The full cost of customer churn includes both lost revenue and the marketing costs involved with replacing those customers with new ones. Reducing customer churn is a key business goal of every online business.
+
+The ability to predict that a particular customer is at a high risk of churning, while there is still time to do something about it, represents a huge additional potential revenue source for every online business. Besides the direct loss of revenue that results from a customer abandoning the business, the costs of initially acquiring that customer may not have already been covered by the customer's spending to date. (In other words, acquiring that customer may have actually been a losing investment.) Furthermore, it is always more difficult and expensive to acquire a new customer than it is to retain current paying customers.
 
 ### 1.1 Scope of work & Business task
 
-In this case study I will focus on predicting customer churn for a pharmacy retail group with many shops around the country.
-Furthermore a complete data analysis and exploration is performed, including insight on the prediction power of each data features which can be exploited to design customer retantion strategies.
+In this case study I will focus on predicting customer churn for a pharmacy retail group with many shops around the country. Furthermore a complete data analysis and exploration is performed, including insight on the prediction power of each data features which can be exploited to design customer retantion strategies.
 
 ## 2.0 Data
-The data set used is avaible on __[Kaggle](https://www.kaggle.com)__ under the name of __[Customer Churn Prediction || Pharmaceutical Data](https://www.kaggle.com/mishra5001/customer-churn-prediction-pharmaceutical-data)__.
-This data set is provided in csv format and has a Kaggle usability score of 8.8 which mean it was already cleaned and feature was drescribed for easy understanding.
-The data set was created in Feb 2021 and it contain pharmacies transaction and bill for a period of 5 month from the end of Apr 2019 to Sep 2019. 
-In addition to the main data set it also provided a test dataset to test the prediction efficacy. 
 
-
+The data set used is avaible on [**Kaggle**](https://www.kaggle.com) under the name of [**Customer Churn Prediction \|\| Pharmaceutical Data**](https://www.kaggle.com/mishra5001/customer-churn-prediction-pharmaceutical-data). This data set is provided in csv format and has a Kaggle usability score of 8.8 which mean it was already cleaned and feature was drescribed for easy understanding. The data set was created in Feb 2021 and it contain pharmacies transaction and bill for a period of 5 month from the end of Apr 2019 to Sep 2019. In addition to the main data set it also provided a test dataset to test the prediction efficacy.
 
 ## 3.0 Tools and process
-The analysis was performed using R coding language.
-A complete list of R packages, a data log and the source code are all avaible on the project github repository at this __[link](https://github.com/scozzarro/Portfolio/tree/main/Patients_prescription_churn_case_study)__. 
 
+The analysis was performed using R coding language. A complete list of R packages, a data log and the source code are all avaible on the project github repository at this [**link**](https://github.com/scozzarro/Portfolio/tree/main/Patients_prescription_churn_case_study).
 
 ```{r Tools and process, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE}
 #1.0 Library & Tools ----
@@ -77,11 +71,9 @@ purchase_data_Apr_Sep$payment_method[which(purchase_data_Apr_Sep$payment_method 
 
 ## 4.0 Analysis
 
-Data contains information about `r n_distinct(purchase_data_Apr_Sep$bill_ref_id)` transactions made in `r n_distinct(purchase_data_Apr_Sep$store_ref_id)` stores, by `r n_distinct(purchase_data_Apr_Sep$customer_re_id)` distinct users.
-The average receipt value was `r mean(purchase_data_Apr_Sep$total_spend_bill)`$.
+Data contains information about `r n_distinct(purchase_data_Apr_Sep$bill_ref_id)` transactions made in `r n_distinct(purchase_data_Apr_Sep$store_ref_id)` stores, by `r n_distinct(purchase_data_Apr_Sep$customer_re_id)` distinct users. The average receipt value was `r mean(purchase_data_Apr_Sep$total_spend_bill)`\$.
 
-Tha sales analysis showed a steady number of sales from april to july with a costant increase in august and september.
-The highest number of sales was made on monday, while from tuesday to saturday we observed a slightly lower and constant value. Sunday has the worst sales rate, almost halved compared to the others. 
+Tha sales analysis showed a steady number of sales from april to july with a costant increase in august and september. The highest number of sales was made on monday, while from tuesday to saturday we observed a slightly lower and constant value. Sunday has the worst sales rate, almost halved compared to the others.
 
 ```{r Analysis 1, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '50%'}
 purchase_data_Apr_Sep %>% ggplot(aes(month(created_at_bill, label = TRUE), fill = month(created_at_bill, label = TRUE))) +
@@ -136,7 +128,7 @@ purchase_data_Apr_Sep %>% mutate(created_at_bill = hour(round_date(created_at_bi
 
 \pagebreak
 
-In the following plot are showed the top 10 store by number of sales. 
+In the following plot are showed the top 10 store by number of sales.
 
 ```{r Analysis 3, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '50%'}
 
@@ -182,9 +174,9 @@ purchase_data_Apr_Sep %>% group_by(customer_ref_id) %>%
                           labs(title = 'New customer per month')
 ```
 
-
 \pagebreak
-Overall the undisputed most used payment method was cash, but we can see that as the purchase value rise the payment method change. 
+
+Overall the undisputed most used payment method was cash, but we can see that as the purchase value rise the payment method change.
 
 ```{r Analysis 5, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '50%'}
 
@@ -210,7 +202,6 @@ purchase_data_Apr_Sep %>% group_by(payment_method) %>%
                           labs(title = 'Average transaction per payment method')
 ```
 
-
 ```{r Analysis 6, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '100%'}
 
 purchase_data_Apr_Sep %>% ggplot(aes(round(total_spend_bill), fill = payment_method)) +
@@ -225,13 +216,9 @@ purchase_data_Apr_Sep %>% ggplot(aes(round(total_spend_bill), fill = payment_met
 
 ## 5.0 Prediction model
 
-The desired prediction model need to predict the probability of each user to churn in september 2019. 
-To build a prediction model based on this data set, a process called feature selection and engineering was necessary.
-The data frame created for train and validate the model was used also to evaluate the prediction power, correlation and importance of the features created.
-As target value a specific feature was created with the name of 'churn_in_sep' and can assume a logic value of 0 if the user stayed also in september and 1 it churn.
+The desired prediction model need to predict the probability of each user to churn in september 2019. To build a prediction model based on this data set, a process called feature selection and engineering was necessary. The data frame created for train and validate the model was used also to evaluate the prediction power, correlation and importance of the features created. As target value a specific feature was created with the name of 'churn_in_sep' and can assume a logic value of 0 if the user stayed also in september and 1 it churn.
 
-After this process, from the main data set a train and validation data frame were created.
-The evaluation of the model was made using AUC metrics. 
+After this process, from the main data set a train and validation data frame were created. The evaluation of the model was made using AUC metrics.
 
 ```{r Prediction model 1, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE}
 
@@ -306,10 +293,9 @@ data_model_test$churn_in_oct<- purchase_data_test_Oct$oct_purchase_flag
 
 ```
 
-Starting from the original data set, the target value inside the data frame prepared for the train and validation of the model has the following proportion: `r round(data_model_train_prop[[1]]*100)`% of all users stays also in september, `r round(data_model_train_prop[[2]]*100)`% of them churn.
-This mean that the original data was significantly unbalanced and a perfect prediction system is not possible. In the future work section I will present possible solution to this problem.
+Starting from the original data set, the target value inside the data frame prepared for the train and validation of the model has the following proportion: __`r round(data_model_train_prop[[1]]*100)`% of all users stays also in september, `r round(data_model_train_prop[[2]]*100)`% of them churn__. This mean that the original data was significantly unbalanced and a perfect prediction system is not possible. In the future work section I will present possible solution to this problem.
 
-As shown in the following plot the most useful feature are the average quantity of visit made by the user and the the average quantity of drug for chronic diseases witch has a lot of sense since chronic diseases requires complex and prolonged treatment. 
+As shown in the following plot the most useful feature are the average quantity of visit made by the user and the the average quantity of drug for chronic diseases witch has a lot of sense since chronic diseases requires complex and prolonged treatment.
 
 ```{r Prediction model 2, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '100%'}
 data_model_ppsr<- data_model %>% select(-customer_ref_id) %>%
@@ -344,10 +330,10 @@ fit_xgb <- workflow() %>%
 fit_xgb$fit$fit$fit %>% vip()
 
 ```
-For the prediction model the approach taken was a generalist one, more a starting point rather than a complex and definitive.
-Using the __[H2o.ai](https://www.h2o.ai/)__ platform in auto machine learning configuration, I was able to create different models using a variety of machine learning algorithms.
 
-In the next plots there are the partial dependence plot (PDP) that gives a graphical depiction of the marginal effect of a variable on the response. The effect of a variable is measured in change in the mean response. PDP assumes independence between the feature for which is the PDP computed and the rest.
+\pagebreak
+
+For the prediction model, the approach taken was a generalist one, more a starting point rather than a complex and definitive solution. Using the [**H2o.ai**](https://www.h2o.ai/) platform in auto machine learning configuration, I was able to create different models using a variety of machine learning algorithms.
 
 ```{r Prediction model 4, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '50%',results = "hide"}
 library(h2o)
@@ -375,37 +361,41 @@ h2o_aml <- h2o.automl(x = x_h2o, y = y_h2o,
 
 h2o_aml_lb <- h2o_aml@leaderboard
 
-h2o_aml_lb
-
 h2o_aml_pred <- h2o.predict(h2o_aml@leader, validation_h20[,1:14])
 
-h2o_aml_lb %>% kable('latex', digits = 10, caption = 'Auto machine learning leaderboard', booktabs = T) %>% kable_styling(full_width = FALSE, font_size = 11, latex_options = c("striped", 'condensed','scale_down')) %>% column_spec(3, width = "12em")
-
-h2o.explain(h2o_aml@leader, validation_h20)
 ```
 
-As expected from the unbalanced data frame the prediction model is more sensible in predict customer that will churn.
-The best model created was an stacked ensemble generated from overlap different algorithm. 
+As expected from the unbalanced data frame the prediction model is more sensible in predict customer that will churn. To evaluate the best model, the metric *AUC* was used. AUC stands for Area under the ROC Curve (showed in the picture below) and it measures the entire two-dimensional area underneath the entire ROC curve (think integral calculus). AUC provides an aggregate measure of performance across all possible classification thresholds. One way of interpreting AUC is as the probability that the model ranks a random positive example more highly than a random negative example.
 
+According to this metric the best model created was an stacked ensemble generated from overlap different algorithms.
 
-```{r Prediction model 4, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '50%'}
+```{r Prediction model 5, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '50%'}
+lb<- head(h2o_aml_lb,5)
+
+lb %>% kable('latex', digits = 10, caption = 'Auto machine learning leaderboard', booktabs = T) %>% kable_styling(full_width = FALSE, font_size = 11, latex_options = c("striped", 'condensed','scale_down')) 
 
 leader_perf<- h2o.performance(h2o_aml@leader, validation_h20)
 
-leader_perf
 
-h2o.confusionMatrix(h2o_aml@leader)
+leader_perf@metrics$max_criteria_and_metric_scores %>% kable('latex', caption = 'Best model maximum metrics', booktabs = T) %>% kable_styling(full_width = T, font_size = 9, latex_options = c("striped", 'condensed','scale_down',"hold_position"))
+
+leader_cf<- h2o.confusionMatrix(h2o_aml@leader) 
+
+leader_cf %>% kable('latex', caption = 'Best model confusion matrix', booktabs = T) %>% kable_styling(full_width = T, font_size = 9, latex_options = c("striped", 'condensed','scale_down',"hold_position")) 
 
 plot(leader_perf, type = 'roc')
 
 plot(leader_perf, type = 'pr')
 
 h2o.shutdown(prompt = FALSE)
+
 ```
+\pagebreak
 
 ## 6.0 Conclusion
 
 Churn Prediction was done performed and results were acceptable. The data set creation and feature engineering were the complicated part of this project. Higher accuracy cannot be achieved simply in this type of data set. Training the previous month data set, we can predict the next months customers status in churn prediction.
 
 ## 7.0 Future work
+
 Since the unbalanced nature of the data provide and the impossibility to gather new, a synthetic data augmentation process can be applied using for example ROSE technique.

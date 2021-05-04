@@ -292,10 +292,12 @@ leader_perf<- h2o.performance(h2o_aml@leader, validation_h20)
 
 leader_perf
 
-h2o.confusionMatrix(h2o_aml@leader)
+leader_cf<- h2o.confusionMatrix(h2o_aml@leader)
 
 plot(leader_perf, type = 'roc')
 
 plot(leader_perf, type = 'pr')
+
+leader_cf
 
 h2o.shutdown(prompt = FALSE)
