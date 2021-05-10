@@ -1,0 +1,235 @@
+---
+title: 'His Airness: Michael Jordan'
+author: "Gabriel Scozzarro"
+date: "10/5/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## 1.0 Introduction
+In any profession the question that is always asked is, "Who is the best?" People have a desire to determine the one who achieved the greatest success at their field. In many cases there is no definite answer, but we spend our time debating who excelled to the greatest extent.
+
+The NBA is no different. For years basketball fans have argued over who is the greatest player of all time. Players like Wilt Chamberlain, Bill Russell and Kareem Abdul-Jabbar are among the players who come to mind. However, the one player who defined greatness was Michael Jeffrey Jordan.
+
+It’s hard to compare players from different eras.  The best way to do so is by evaluating how dominant a player was during his time.
+
+We took the data from the regular season 1996-97 to analyze how MJ offense dominance contributed to reach this level and made him a legend. 
+```{r Tools and process, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE}
+
+# 1.0 Tools ----
+library(tidyverse)
+library(jsonlite)
+library(hexbin)
+library(httr)
+
+#source script
+if(!exists("court_themes", mode="function")) source("Plot_themes.R")
+if(!exists("plot_court", mode="function")) source("court_plot.R")
+if(!exists("find_player_id_by_name", mode="function")) source("get_players_data.R")
+if(!exists("get_shots_by_player_id_and_season", mode="function")) source("get_shot_data_api.R")
+if(!exists("generate_hex_chart", mode="function")) source("hex_court_plot.R")
+
+
+
+#function
+fraction_to_percent_format = function(frac, digits = 1) {
+  paste0(format(round(frac * 100, digits), nsmall = digits), "%")
+}
+
+percent_formatter = function(x) {
+  scales::percent(x, accuracy = 1)
+}
+
+points_formatter = function(x) {
+  scales::comma(x, accuracy = 0.01)
+}
+
+```
+
+## 2.0 Data
+The __NBA’s [Stats API](https://stats.nba.com/)__ provides data for every single shot attempted during an NBA game since 1996, including location coordinates on the court.
+
+```{r Data, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE}
+
+MJ_data<- find_player_by_name('Michael Jordan')
+MJ_id<- find_player_id_by_name('Michael Jordan')
+
+Mj_shot_data<- get_shots_by_player_id_and_season(player_id = MJ_id, 
+                                                 season ='1996-97', 
+                                                 season_type = 'Regular Season')$player
+
+league_shot_avg<-get_shots_by_player_id_and_season(player_id = MJ_id, 
+                                                   season ='1996-97', 
+                                                   season_type = 'Regular Season')$league_averages
+
+
+simplified_areas = c("Center(C)" = "Center",
+                     "Left Side(L)" = "Left",
+                     "Left Side Center(LC)" = "Left",
+                     "Right Side(R)" = "Right",
+                     "Right Side Center(RC)" = "Right",
+                     "Back Court(BC)" = "Backcourt"
+                    )
+
+Mj_shot_data$simplified_shot_areas<- simplified_areas[Mj_shot_data$shot_zone_area]
+
+```
+
+## 3.0 A Season of Dominance
+
+```{r Season of Dominance, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE}
+FGM<- sum(Mj_shot_data$shot_made_numeric)/n_distinct(Mj_shot_data$game_id)
+PPG_no_FT<- sum(Mj_shot_data$shot_value[which(Mj_shot_data$shot_made_numeric == 1)])/n_distinct(Mj_shot_data$game_id)
+
+```
+
+I believe beginning with a discussion of Jordan’s 96-97 season will set the tone for this report. In the 1996-97 season, Michael Jordan led the league in scoring with 35 points a game (`r PPG_no_FT` without free throws), was named the defensive player of the year, and won MVP. The next highest scorer was Dominque Wilkins with 30 points a game. Jordan played all `r n_distinct(Mj_shot_data$game_id)` games. As usual, MJ was voted to the All-NBA First Team and the All-NBA Defensive first team. This year, Karl Malone was voted as the league MVP and beat out MJ by a very slim margin.Mike gained his revenge as the Bulls defeated Malone and his Utah Jazz, and Jordan took the title of NBA Finals MVP for the fifth time in 5 different trips to the Championships.
+
+## 4.0 Unstoppable Offense
+Offensively, Jordan has a very long list of accomplishments. MJ was not only the greatest scorer of his era, but he was a hyperefficient mid-range shooter, too. We didn't use the word "efficiency" much when talking about hoops in the 1990s, but Jordan passes the efficiency test with flying colors. His go-to shots in that legendary period were no longer the incredible gravity-defying dunks that marked the early stages of his career, but rather some absolutely gorgeous midrange jumpers 
+
+```{r Offense, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '95%'}
+#plot function
+generate_heatmap_chart = function(shots, base_court, court_theme = court_themes$dark) {
+  base_court +
+    stat_density_2d(
+      data = shots,
+      aes(x = loc_x, y = loc_y, fill = stat(density / max(density))),
+      geom = "raster", contour = FALSE, interpolate = TRUE, n = 200
+    ) +
+    geom_path(
+      data = court_points,
+      aes(x = x, y = y, group = desc),
+      color = court_theme$lines
+    ) +
+    scale_fill_viridis_c(
+      "Shot Frequency    ",
+      limits = c(0, 1),
+      breaks = c(0, 1),
+      labels = c("lower", "higher"),
+      option = "inferno",
+      guide = guide_colorbar(barwidth = 8)
+    ) 
+}
+generate_scatter_chart = function(shots, base_court, court_theme = court_themes$dark, alpha = 0.8, size = 2.5) {
+  base_court +
+    geom_point(
+      data = shots,
+      aes(x = loc_x, y = loc_y, color = shot_made_flag),
+      alpha = alpha, size = size
+    ) +
+    scale_color_manual(
+      "",
+      values = c(made = court_theme$made, missed = court_theme$missed)
+    ) +
+     theme(legend.text = element_text(size = rel(0.4)))
+}
+
+
+Mj_shot_density<- generate_heatmap_chart(Mj_shot_data, plot_court(court_themes$light))
+Mj_shot_density + labs(title = 'Michael Jordan shot density', subtitle = 'Regular Season 1996-1997', caption = 'Data from stats.nba.com') +
+                  theme(text=element_text(size=14), 
+                        legend.spacing.x = unit(1, 'cm'), 
+                        legend.title=element_text(size=12, colour = 'black'), 
+                        legend.text = element_text(size = rel(0.6), colour = 'black'), 
+                        legend.position = 'bottom',
+                        legend.box.just = 'left',
+                        plot.title = element_text(hjust = 0.5, vjust = -1, face = "bold"),
+                        plot.subtitle = element_text(hjust = 0.5, size = 9, vjust = -.5), 
+                        plot.caption = element_text(face = "italic", size = 8), 
+                        plot.margin = margin(0, -5, 0, -5, "cm")) 
+
+
+Mj_hex_data<- calculate_hexbins_from_shots(shots = Mj_shot_data, league_averages = league_shot_avg, binwidths = c(1,1))
+
+Mj_hex_plot<- generate_hex_chart(Mj_hex_data, plot_court(court_themes$dark), court_theme = court_themes$dark, metric = sym("bounded_fg_diff"))
+Mj_hex_plot + labs(title = 'Michael Jordan field goals', subtitle = ' Regular Season 1996-1997', caption = 'Data from stats.nba.com') +
+              guides(fill=guide_legend(label.position = 'bottom', 
+                                       title.position = 'top', 
+                                       keywidth=.45,
+                                       keyheight=.15, 
+                                       default.unit="inch", 
+                                       title.hjust = .5,
+                                       title.vjust = 0,
+                                       label.vjust = 3,
+                                       nrow = 1))  +
+              theme(text=element_text(size=14), 
+                    legend.spacing.x = unit(0, 'cm'), 
+                    legend.title=element_text(size=12, colour = 'white'), 
+                    legend.text = element_text(size = rel(0.6), colour = 'white'), 
+                    legend.margin=margin(-5,0,-1,0),
+                    legend.position = 'bottom',
+                    legend.box.margin=margin(-30,0,15,0), 
+                    plot.title = element_text(hjust = 0.5, vjust = -1, face = "bold"),
+                    plot.subtitle = element_text(hjust = 0.5, size = 9, vjust = -.5), 
+                    plot.caption = element_text(face = "italic", size = 8), 
+                    plot.margin = margin(0, -5, 0, -5, "cm")) 
+
+PPS_plot<- generate_hex_chart(Mj_hex_data, plot_court(court_themes$dark), court_theme = court_themes$dark, metric = sym("bounded_points_per_shot"))
+PPS_plot + labs(title = 'Michael Jordan points per shot', subtitle = 'Regular Season 1996-1997', caption = 'Data from stats.nba.com') +
+           guides(fill=guide_legend(label.position = 'bottom', 
+                                       title.position = 'top', 
+                                       keywidth=.45,
+                                       keyheight=.15, 
+                                       default.unit="inch", 
+                                       title.hjust = .5,
+                                       title.vjust = 0,
+                                       label.vjust = 3,
+                                       nrow = 1))  +
+              theme(text=element_text(size=14), 
+                    legend.spacing.x = unit(0, 'cm'), 
+                    legend.title=element_text(size=12, colour = 'white'), 
+                    legend.text = element_text(size = rel(0.6), colour = 'white'), 
+                    legend.margin=margin(-5,0,-1,0),
+                    legend.position = 'bottom',
+                    legend.box.margin=margin(-30,0,15,0), 
+                    plot.title = element_text(hjust = 0.5, vjust = -1, face = "bold"),
+                    plot.subtitle = element_text(hjust = 0.5, size = 9, vjust = -.5), 
+                    plot.caption = element_text(face = "italic", size = 8), 
+                    plot.margin = margin(0, -5, 0, -5, "cm")) 
+
+made_miss_plot<- generate_scatter_chart(Mj_shot_data, plot_court(court_themes$dark),court_theme = court_themes$light)
+made_miss_plot + labs(title = 'Michael Jordan made vs miss shot', subtitle = 'Regular Season 1996-1997', caption = 'Data from stats.nba.com') +
+                 theme(text=element_text(size=14), 
+                       legend.spacing.x = unit(1, 'cm'), 
+                       legend.title=element_text(size=12, colour = 'black'), 
+                       legend.text = element_text(size = rel(0.6), colour = 'black'), 
+                       legend.position = 'bottom',
+                       legend.box.just = 'left',
+                       legend.background = element_rect(colour = 'floralwhite'),
+                       plot.title = element_text(hjust = 0.5, vjust = -1, face = "bold"),
+                       plot.subtitle = element_text(hjust = 0.5, size = 9, vjust = -.5), 
+                       plot.caption = element_text(face = "italic", size = 8), 
+                       plot.margin = margin(0, -5, 0, -5, "cm")) 
+
+
+Mj_shot_data %>% ggplot(aes(shot_zone_range, fill = shot_made_flag)) +
+                 geom_bar(stat = 'count') +
+                 xlab('Shot range from basket') +
+                 ylab('Attempts') +
+                 theme_minimal() +
+                 labs(title = 'Michael Jordan shot range frequency', subtitle = 'Regular Season 1996-1997', caption = 'Data from stats.nba.com')
+
+jump_shot_plot<- Mj_shot_data %>% filter(action_type == 'Jump Shot' & shot_zone_basic != 'Above the Break 3' & shot_made_numeric == 1) %>% 
+                 generate_heatmap_chart(plot_court(court_themes$light))
+
+jump_shot_plot + labs(title = 'Michael Jordan made jump shot positions', subtitle = 'Regular Season 1996-1997', caption = 'Data from stats.nba.com') +
+                 theme(text=element_text(size=14), 
+                       legend.spacing.x = unit(1, 'cm'), 
+                       legend.title=element_text(size=12, colour = 'black'), 
+                       legend.text = element_text(size = rel(0.6), colour = 'black'), 
+                       legend.position = 'bottom',
+                       legend.box.just = 'left',
+                       plot.title = element_text(hjust = 0.5, vjust = -1, face = "bold"),
+                       plot.subtitle = element_text(hjust = 0.5, size = 9, vjust = -.5), 
+                       plot.caption = element_text(face = "italic", size = 8), 
+                       plot.margin = margin(0, -5, 0, -5, "cm")) 
+```
+
+
+Jordan didn't dance around the margins of the scoring era. He infiltrated the teeth of opposing defenses and destroyed them up close and personal. He said it to their faces. Other players will win scoring titles and NBA championships, but nobody will ever do it like Jordan did.
+
+In fact, since the NBA moved the 3-point line back in 1997, no one has come close to topping Jordan's mark of midrange makes in a season.
