@@ -8,6 +8,7 @@ output: pdf_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 ```
+![](unnamed-1.jpg)
 
 ## 1.0 Introduction
 In any profession the question that is always asked is, "Who is the best?" People have a desire to determine the one who achieved the greatest success at their field. In many cases there is no definite answer, but we spend our time debating who excelled to the greatest extent.
