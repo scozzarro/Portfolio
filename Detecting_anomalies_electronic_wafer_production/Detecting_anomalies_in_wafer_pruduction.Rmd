@@ -230,12 +230,18 @@ h2o_aml <- h2o.automl(x = x_h2o, y = y_h2o,
 
 h2o_aml_lb <- h2o_aml@leaderboard
 
-h2o_aml_lb %>% kable('latex', digits = 10, caption = 'Prediction model leaderboard', booktabs = T) %>% kable_styling(full_width = FALSE, font_size = 11, latex_options = c("striped", 'condensed','scale_down'))
+
 ``` 
+
+The training process output several model summarized in the following 'leader-board':
+```{r Prediction model 3, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '95%'}
+h2o_aml_lb %>% kable('latex', digits = 10, caption = 'Prediction model leaderboard', booktabs = T) %>% kable_styling(full_width = FALSE, font_size = 11, latex_options = c("striped", 'condensed','scale_down'))
+```
 
 The most performing model details are as follow:
 
-```{r Prediction model 3, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '95%'}
+```{r Prediction model 4, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '95%'}
+
 
 leader_perf<- h2o.performance(h2o_aml@leader, validation_h20)
 leader_perf
