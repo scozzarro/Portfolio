@@ -15,7 +15,7 @@ This report will guide you through the methods and the results of this project. 
 
 ## Methods and analysis
 
-We use the MovieLens 10M dataset that consists of 10M observed ratings from almost 70K different users applied to 10K different movies. We already diveded the data set in 2 part with a proportion of 90/10 for train_set and test_set respectively.
+We use the MovieLens 10M dataset that consists of 10M observed ratings from almost 70K different users applied to 10K different movies. We already divided the data set in 2 part with a proportion of 90/10 for train_set and test_set respectively.
 
 
 ```R
@@ -23,7 +23,7 @@ train_set<- readRDS(file = "edx.rds")
 test_set<- readRDS(file = "validation.rds")
 ```
 
-To perform a preliminar analysis of the dataset we use the following packages:
+To perform a preliminary analysis of the dataset we use the following packages:
 
 
 ```R
