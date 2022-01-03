@@ -106,7 +106,7 @@ unified_raw_tbl %>% group_by(prime_genre) %>%
                     tidyquant::scale_fill_tq() +
                     theme_minimal() +
                     theme(legend.position = "NONE") +
-                    labs(title = "Average App screen shot displayed in the description by category",
+                    labs(title = "Average App screenshots displayed in the description by category",
                          x = "Average pictures displayed",
                          y = "Category")
 
