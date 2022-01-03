@@ -99,6 +99,16 @@ unified_raw_tbl %>% filter(price > 0) %>%
 #                          y = "Number of App",
 #                          x = "")
 
+unified_raw_tbl %>% group_by(prime_genre) %>%
+                    summarise(avg_scsh_dspl = mean(ipadSc_urls.num)) %>%
+                    ggplot(aes(avg_scsh_dspl, reorder(prime_genre, avg_scsh_dspl), fill = prime_genre)) +
+                    geom_bar(stat = "identity") +
+                    tidyquant::scale_fill_tq() +
+                    theme_minimal() +
+                    theme(legend.position = "NONE") +
+                    labs(title = "Average App screen shot displayed in the description by category",
+                         x = "Average pictures displayed",
+                         y = "Category")
 
 ##Price Analysis ----
 unified_raw_tbl %>% mutate(is_free = case_when(price == 0 ~ "FREE", TRUE ~ "PAID")) %>%
@@ -207,6 +217,20 @@ unified_raw_tbl %>% filter(price >0) %>%
                          subtitle = "No clear influence of App size on price",
                          x = "App size in Mb",
                          y = "Price in USD")
+
+unified_raw_tbl %>% filter(price > 0) %>%
+                    group_by(cont_rating) %>%
+                    summarise(avg_price = mean(price)) %>%
+                    ggplot(aes(reorder(cont_rating, avg_price), avg_price, fill = cont_rating)) +
+                    geom_bar(stat = "identity") +
+                    scale_y_continuous(labels = scales::dollar_format()) +
+                    tidyquant::scale_fill_tq() +
+                    theme_minimal() +
+                    theme(legend.position = "NONE") +
+                    labs(title = "Price Vs App content age rating",
+                         x = "Content age rating",
+                         y = "Price in USD")
+                    
 
 
 
@@ -386,5 +410,18 @@ unified_raw_tbl %>% mutate(user_rating_ver = round(user_rating_ver)) %>%
                     labs(title = "Supported devices Vs User Rating",
                          x = "Supported devices",
                          y = "User Rating current version")
+
+
+unified_raw_tbl %>% mutate(user_rating = round(user_rating)) %>%
+                    group_by(ipadSc_urls.num) %>%
+                    summarise(avg_user_rating = mean(user_rating)) %>%
+                    ggplot(aes(ipadSc_urls.num, avg_user_rating)) +
+                    geom_point(size = 2, color = tidyquant::palette_light()[[2]]) +
+                    geom_line(size = 0.6, color = tidyquant::palette_light()[[1]]) +
+                    geom_smooth(method = "glm") +
+                    theme_minimal() +
+                    labs(title = "Average user Rating Vs Number of screenshots showed for display",
+                         x = "Number of screenshots showed for display",
+                         y = "Average user rating")
 
 
