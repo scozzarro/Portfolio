@@ -127,7 +127,7 @@ unified_raw_tbl %>% filter(price > 0) %>%
 
 Games are the most frequent App category in the store followed by Entertainment and Education. Free Apps are noticeably more present but almost same category proportions are maintained also when we split the App store in paid App and free App.
 
-Excluding free Apss, Medical related Apps are, on average, more expensive with an average price of `r round(mean(unified_raw_tbl$price[which(unified_raw_tbl$price > 0 & unified_raw_tbl$prime_genre == "Medical")]),1)`. Work and study related Apps has also a noticeably bigger price compared to entertaining and free time Apps.
+Excluding free Apps, Medical related Apps are, on average, more expensive with an average price of `r round(mean(unified_raw_tbl$price[which(unified_raw_tbl$price > 0 & unified_raw_tbl$prime_genre == "Medical")]),1)`. Work and study related Apps has also a noticeably bigger price compared to entertaining and free time Apps.
 
 
 ```{r EDA - Category 2, warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, out.width='50%'}
@@ -154,7 +154,7 @@ unified_raw_tbl %>% group_by(prime_genre) %>%
                          x = "Average description length",
                          y = "Category")
 ```
-An analysis on how the different categories communicate to the customers was made. Some categories are more prone to communicate with images rather than text. For example Games on average is the second most App category for the usage of images but if we look at the other plot we can see that Games is the second last for text length.
+An analysis on how the different categories communicate to the customers was made. Some categories are more prone to communicate with images rather than text. For example, Games on average is the second most App category for the usage of images but if we look at the other plot we can see that Games is the second last for text length.
 
 
 ```{r EDA - Price 1, warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, out.width='50%'}
@@ -291,7 +291,7 @@ unified_raw_tbl %>% filter(price > 0) %>%
                          y = "Price in USD")
 ```
 
-Some deeper investigation to possible relation that can influence the price of an App was performed. As the number of supported devices grows there is a trend in lowering the price which is counter intuitive if we suppose that more supported device equal more development cost. Instead, the number of supported languages and the size of the App in Mb didn't reveal an influence on the App price. The Price Vs content age rating reveal that App for adult are slightly cheaper on average.
+Some deeper investigation to possible relation that can influence the price of an App was performed. As the number of supported devices grows there is a possible trend in lowering the price which is counter intuitive if we suppose that more supported device equal more development cost. Instead, the number of supported languages and the size of the App in Mb didn't reveal a clear influence on the App price. The Price Vs content age rating reveal that App for adult are slightly cheaper on average.
 
 ```{r EDA - Market 1, warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, out.width='50%'}
 ##Market Analysis---- 
@@ -336,12 +336,10 @@ unified_raw_tbl %>% group_by(prime_genre) %>%
                     summarise(mrkt_val = sum(bottom_rev)) %>%
                     mutate(pct = mrkt_val/sum(mrkt_val)) %>%
                     mutate(prime_genre_2 = "A") %>%
-                    mutate(prime_genre_2= case_when(pct < 0.01 ~ "Other", TRUE ~ prime_genre)) %>%
+                    mutate(prime_genre_2 = case_when(pct < 0.01 ~ "Other (summed)", TRUE ~ as.character(prime_genre)))%>%
                     group_by(prime_genre_2) %>%
                     summarise(pct = sum(pct), mrkt_val = sum(mrkt_val)) %>%
-                    ggplot(aes(mrkt_val, 
-                               reorder(prime_genre_2, mrkt_val), 
-                               fill = prime_genre_2,
+                    ggplot(aes(mrkt_val, reorder(prime_genre_2, mrkt_val), fill = prime_genre_2,
                                label = scales::percent(round(pct, 2)))) +
                     geom_bar(stat = "identity") +
                     geom_text(stat = "identity", hjust = -0.5, size = 3) +
@@ -354,6 +352,7 @@ unified_raw_tbl %>% group_by(prime_genre) %>%
                          subtitle = "Gaming App represents the biggest market share",
                          x = "Estimated market value in USD",
                          y = "Category")
+
 ```
 Even if Business Apps are the best in term of average revenues if all the revenues generated in the store are taken and split by category, Games is the one with the biggest share of generated revenues. 
 
@@ -459,7 +458,7 @@ unified_raw_tbl %>% select(user_rating, user_rating_ver, prime_genre) %>%
 
 Thanks to Apptetive 2015 survey it was possible to estimate the effect of the change, if it happened, in rating between the previous and current version. All Apps, that showed an amazing change from a rating of 1 (or less) to a rating of 5 increasing their App Store conversion rate by 770%, were selected and grouped by their category.
 
-```{r EDA - User rating 2, warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, out.width='50%'}
+```{r EDA - User rating 3, warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, out.width='50%'}
 
 unified_raw_tbl %>% mutate(user_rating = round(user_rating_ver)) %>%
                     group_by(lang.num) %>%
@@ -498,7 +497,7 @@ unified_raw_tbl %>% mutate(user_rating = round(user_rating)) %>%
                          x = "Number of screenshots showed for display",
                          y = "Average user rating")
 
-unified_raw_tbl %>% mutate(user_rating = round(user_rating),desc_len = nchar(app_desc)) %>%
+unified_raw_tbl %>% mutate(user_rating = round(user_rating), desc_len = nchar(app_desc)) %>%
                     group_by(user_rating) %>%
                     summarise(avg_desc_len = mean(desc_len)) %>%
                     ggplot(aes(user_rating, avg_desc_len)) +
@@ -508,13 +507,13 @@ unified_raw_tbl %>% mutate(user_rating = round(user_rating),desc_len = nchar(app
                     theme_minimal() +
                     labs(title = "User rating Vs text description length",
                          x = "User rating",
-                         y = "Number of characters")
+                         y = "Average number of characters")
 
 
 ```
 
-Now that the value of a good positive rating is estimated finding what can increase the user rating has a greater importance. An analysis of possible factors that can influence the user rating was performed discovering a clear positive influence of the number of languages and the number of pictures used in the App description. Also the length of the text description seems promising in increasing the user rate.
+Now that the value of a good positive rating is estimated finding what can increase the user rating has a greater importance. An analysis of possible factors that can influence the user rating was performed discovering a possible positive influence of the number of languages and the number of pictures used in the App description. Also the length of the text description seems promising in increasing the user rate.
 
-##5.0 Conclusion
+## 5.0 Conclusion
 
 According to what found in the analysis the App Store is currently dominated by Games, both for presence and potential revenue, justifying the recent introduction of the arcade center by Apple. Going beyond Games App, other App category are really promising. For example Business app has a great average profit and demand with less competition compared to many other categories. Generally speaking the recommendation is to invest in the app description using both at least 4 images and over 1600 characters to increase the possibility of good reviews from users and consequently the conversion rate on the App Store. 
