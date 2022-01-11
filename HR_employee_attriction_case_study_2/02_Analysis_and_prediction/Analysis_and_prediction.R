@@ -1387,7 +1387,7 @@ rates_by_threshold_opt_tbl %>% ggplot(aes(threshold, savings)) +
                      breaks = seq(0, 1, by = 0.2)) +
   scale_y_continuous(labels = scales::dollar) +
   labs(title = 'Saving optimization by threshold',
-       subtitle = 'Targeted Overtime and Stock option policy')
+       subtitle = 'Targeted Overtime policy')
 
 #Sensitivity analysis ----
 ## Create sensitivity function ----
