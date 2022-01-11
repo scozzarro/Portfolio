@@ -1,5 +1,46 @@
-#Libraries ----
+---
+title: "HR sistema di previsione termine rapporto lavorativo dipendenti e strategie per l'ottimizzazione"
+author: "Gabriel Scozzarro"
+date: "10/1/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## 1.0 Introduzione
+L'interruzione del rapporto lavorativo del personale è definito come il processo attraverso il quale i dipendenti lasciano la forza lavoro – ad esempio per dimissioni per motivi 
+personali o pensionamento e non vengono immediatamente sostituiti.
+Alcune forme di abbandono sono inevitabili, ad esempio se un dipendente va in pensione o si trasferisce in un'altra città, ma dopo una certa soglia, l'interruzione del rapporto 
+lavorativo può intaccare notevolmente i profitti dell'azienda e la sua cultura. In questo business case è stato realizzato un sistema di predizione dell'interruzione volontaria del
+rapporto lavorativo basato sui dati forniti dal dipartimento HR dell'azienda. Basandosi sui risultati stimati dal suddetto sistema sono state anche realizzate delle strategie per 
+l'ottimizzazione dell'assegnazione di ore lavorative straordinarie e di incetivi salariali come le stock option.
+
+
+## 2.0 Data
+I dati utilizzati nel presente lavoro sono stati forniti dal dipartimento HR dell'azienda cliente. Contengono informazioni di tutti i dipendenti che hanno lavorato o lavorano
+nell'azienda.
+
+
+## 3.0 Strumenti e metodologia
+Per questo lavoro è stato utilizzato il linguaggio di analisi e programmazione R attraverso il software RStudio.
+La metodologia di lavoro utilizzata è la *''Business Science Project Management Framework''* che combina diversi approcci di lavoro, incluso lo standard industriale 
+[**CRISP-DM**](https://en.wikipedia.org/wiki/Cross-industry_standard_process_for_data_mining)
+
+
+```{r BSPF pic, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE, out.width = '50%', fig.align = 'center'}
+
+knitr::include_graphics("E:/Data_science/Portfolio/HR_employee_attriction_case_study_2/03_Output/Pic/BSPF.png")
+
+
+```
+
+```{r Tools and process, warning = FALSE, error = FALSE, message = FALSE, echo = FALSE}
+#Data exploration----
+
 library(tidyverse)
+library(visdat)
 library(tidyquant)
 library(readxl)
 library(forcats)
@@ -7,17 +48,20 @@ library(stringr)
 library(skimr)
 library(fs)
 library(GGally)
-library()
+library(scales)
 library(cowplot)
 library(recipes)
 library(h2o)
 library(caret)
 library(lime)
 
+```
+
+```{r Load Data, warning=FALSE, error=FALSE, message=FALSE, echo=FALSE}
 #Load Data----
-path_train<- "HR_employee_attriction_case_study_2/00_Data/telco_train.xlsx"
-path_test<- "HR_employee_attriction_case_study_2/00_Data/telco_test.xlsx"
-path_data_definition<- "HR_employee_attriction_case_study_2/00_Data/telco_data_definitions.xlsx"
+path_train<- "E:/Data_science/Portfolio/HR_employee_attriction_case_study_2/00_Data/telco_train.xlsx"
+path_test<- "E:/Data_science/Portfolio/HR_employee_attriction_case_study_2/00_Data/telco_test.xlsx"
+path_data_definition<- "E:/Data_science/Portfolio/HR_employee_attriction_case_study_2/00_Data/telco_data_definitions.xlsx"
 
 train_raw_tbl<- read_excel(path_train, sheet = 1)
 test_raw_tbl<- read_excel(path_test, sheet = 1)
@@ -29,13 +73,14 @@ full_raw_tbl<- merge(train_raw_tbl, test_raw_tbl, all = TRUE)
 #Data Subset ----
 dept_job_role_tbl<- full_raw_tbl %>% select(EmployeeNumber, Department, JobRole, PerformanceRating, Attrition)
 
-#Business Science Problem Framework ----
+```
 
+## 4.0 Analisi situazione dell'azienda
+I dati forniti dall'azienda presentano informazioni riguardanti `r nrow(full_raw_tbl)` dipendenti. E' stata effettuata un'analisi generale per avere una visione di insieme 
+dell'azienda.
+
+```{r BSPF_1 , warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, out.width = '50%'}
 ##1A. View Business as machine ----
-#understanding Department and job role
-#Define objectives: Retain high performers
-#Assess outcomes: TBD
-
 dept_job_role_tbl %>% 
   group_by(Attrition) %>%
   summarise(n = n()) %>%
@@ -48,14 +93,9 @@ dept_job_role_tbl %>%
   scale_y_continuous(labels = scales::percent_format()) +
   labs(title = 'Attrition presence in the company',
        subtitle = 'Is 16% attrition a bad thing?',
-       y = 'Percentage')
+       y = 'Percentage',
+       caption = 'Fig.1')
 
-#is 16% attrition a bad thing ?
-
-##1B. Understand the drivers ----
-#Investigate objectives: 16% attrition 
-#Synthesize outcomes:
-#Hypothesize drivers: Job role and departments
 
 dept_job_role_tbl %>% group_by(Department, Attrition) %>%
   summarise(n = n()) %>%
@@ -69,7 +109,8 @@ dept_job_role_tbl %>% group_by(Department, Attrition) %>%
   scale_y_continuous(labels = scales::percent_format()) +
   labs(title = 'Department with attrition',
        y = 'Percentage',
-       x = '')
+       x = '',
+       caption = 'Fig.2')
 
 dept_job_role_tbl %>% group_by(JobRole, Department, Attrition) %>%
   summarise(n = n()) %>%
@@ -85,12 +126,9 @@ dept_job_role_tbl %>% group_by(JobRole, Department, Attrition) %>%
   scale_y_continuous(labels = scales::percent_format()) +
   labs(title = "Attrition by Job Role and Department",
        x = 'Job Role',
-       y = 'Percentage') +
+       y = 'Percentage',
+       caption = 'Fig.3') +
   coord_flip()
-
-##1C. Measure the drivers ----
-
-#Develop KPI: industry KPI: 8.8% (find on google https://www.zenefits.com/workest/your-company-healthy-employee-retention-rate/)
 
 dept_job_role_tbl %>% group_by(JobRole, Department, Attrition) %>%
   summarise(n = n()) %>%
@@ -114,54 +152,36 @@ dept_job_role_tbl %>% group_by(JobRole, Department, Attrition) %>%
        subtitle = 'According 2016 Compensation Force Study, 8.8% is the average attrition for utilities company',
        y = 'Job Role and Department',
        x = 'Percentage',
-       fill = 'Above industry average')
+       fill = 'Above industry average',
+       caption = 'Fig.4')
 
-##1D. Uncover problems and opportunities ----
 
-calculate_attrition_cost<- function( n = 1,
-                                     salary = 80000,
-                                     separation_cost = 500,
-                                     vacancy_cost = 10000,
-                                     acquisition_cost = 4900,
-                                     placement_cost = 3500,
-                                     net_revenue_per_employee = 250000,
-                                     wordays_per_year = 240,
-                                     workdays_position_open = 40,
-                                     workdays_onboarding = 60,
-                                     onboarding_efficiency = 0.5) {
-  
-  #Direct cost
-  direct_cost<- sum(separation_cost,vacancy_cost,acquisition_cost,placement_cost)
-  
-  #Lost productivity cost
-  productivity_cost<- net_revenue_per_employee/wordays_per_year*
-    (workdays_position_open + workdays_onboarding*onboarding_efficiency)
-  
-  #Saving on salary
-  salary_reduction<- salary/wordays_per_year * workdays_position_open
-  
-  #estimated turnover per employee
-  cost_per_employee<- direct_cost + productivity_cost - salary_reduction
-  
-  #Total cost of employee turnover
-  total_cost<- n * cost_per_employee
-  
-  return(total_cost)
-}
+```
 
-source(file = 'HR_employee_attriction_case_study_2/01_Script_and_function/assess_attrition.R')
+
+Analizzando in modo generale questi dati abbiamo riscontrato la percentuale di interruzione del rapporto lavorativo in tutta l'azienda. Successivamente, è stato verificato 
+se vi fosse una concentrazione maggiore sia nei diversi dipartimenti sia nelle varie posizioni lavorative.
+Inoltre, è stata comparata la condizione attuale dell'azienda con la percentuale di interruzioni di rapporti lavorativi media secondo lo standard di riferimento per il settore di 
+appartenenza.
+Da questa analisi abbiamo riscontrato che:
+
+* La percentuale di interruzioni del rapporto lavorativo in tutta l'azienda è il 16% (Fig.1)
+
+* Il dipartimento più afflitto da questa problematica è **Sales** che distacca di pochi punti % il dipartimento di **HR** (Fig.2)
+
+* All'interno dei dipartimenti la posizione lavorativa maggiormente soggetta a interruzioni è **Sales Representative** (Fig.3)
+
+* Confrontando la situazione attuale dell'azienda con la media di riferimento di settore (8.8%) sono 5 le posizioni lavorative su cui intervenire maggiormente. (Fig.4)
+
+```{r BSPF_2 , warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, out.width = '80%', fig.align = 'center'}
+
+source(file = 'E:/Data_science/Portfolio/HR_employee_attriction_case_study_2/01_Script_and_function/assess_attrition.R')
 
 ##Calculate turnover cost per job role ----
 
-dept_job_role_tbl %>% group_by(JobRole, Department, Attrition) %>%
-  summarise(n = n()) %>%
-  ungroup() %>%
-  group_by(JobRole, Department) %>%
-  mutate(pct = n/sum(n)) %>%
-  ungroup() %>%
-  filter(Attrition %in% "Yes") %>%
-  arrange(desc(pct)) %>%
-  mutate(above_industry_avg = case_when(pct > 0.088 ~ "Yes", TRUE ~ "No")) %>%
+dept_job_role_tbl %>% count(Department, JobRole, Attrition) %>%
+  count_to_pct(Department, JobRole) %>%
+  assess_attrition(Attrition, "Yes", 0.088) %>%
   mutate(cost_of_attrition = calculate_attrition_cost( n = n , salary = 80000)) %>%
   ggplot(aes(reorder(JobRole, cost_of_attrition), cost_of_attrition, fill = Department)) +
   geom_bar(stat = 'identity', position = position_dodge2(preserve = 'single')) +
@@ -174,68 +194,17 @@ dept_job_role_tbl %>% group_by(JobRole, Department, Attrition) %>%
        x = 'Job Role and Department',
        y = 'Cost of attrition in ')
 
-
-#Workflow of attrition
-
-count_to_pct<- function(data, ..., col = n){
-  
-  grouping_vars_expr<- quos(...)
-  col_expr<- enquo(col)
-  
-  ret<- data %>% group_by(!!! grouping_vars_expr) %>%
-    mutate(pct = (!! col_expr)/sum((!! col_expr))) %>%
-    ungroup()
-  
-  return(ret)
-}
-
-assess_attrition<- function(data, attrition_col, attrition_val, baseline_pct){
-  
-  attrition_col_expr<- enquo(attrition_col)
-  
-  data %>% filter((!! attrition_col_expr) %in% attrition_val) %>%
-    arrange(desc(pct)) %>%
-    mutate(above_industry_avg = case_when(pct > baseline_pct ~ "Yes",
-                                          TRUE ~ "No"))
-  
-}
-
-dept_job_role_tbl %>% count(Department, JobRole, Attrition) %>%
-  count_to_pct(Department, JobRole) %>%
-  assess_attrition(Attrition, "Yes", 0.088) %>%
-  mutate(cost_of_attrition = calculate_attrition_cost( n = n , salary = 80000))
+```
 
 
-#Exploratory Data Analysis (EDA) ----
+Se traduciamo quanto riscontrato in termini economici riscontriamo un enorme spesa annuale stimata a $15.7M per l'azienda. Per calcolare questa cifra sono stati ipotizzati i 
+seguenti valori: stipendio medio 80.000, costo di separazione 500, costo assenza dipendente 10.000, costo acquisizione nuovo dipendente 4.900, costo del placement 3.500,
+giorni lavorativi annuali 240, giorni posizione aperta 40, giorni per mentoring e training 60, efficacia processo di onboarding 0.5, guadagno generato dal dipendente 250.000.
 
-##Step1: Data summary ----
+## 5.0 Exploratory Data Analysis (EDA)
+Per realizzare il sistema predittivo è stato necessario esplorare le variabili, contenute del database fornito, associate ad ogni dipendente.
 
-skim(train_raw_tbl)
-
-#Character Data Type
-train_raw_tbl %>% select_if(is.character) %>%
-  glimpse()
-
-
-train_raw_tbl %>% select_if(is.character) %>%
-  map(unique)
-
-train_raw_tbl %>% select_if(is.character) %>%
-  map(~ table(.) %>% prop.table())
-
-#Numeric Data Type
-
-train_raw_tbl %>% select_if(is.numeric) %>%
-  map(~unique(.) %>% length())
-
-train_raw_tbl %>% select_if(is.numeric) %>%
-  map_df(~unique(.) %>% length()) %>%
-  gather() %>%
-  arrange(value) %>%
-  filter(value <= 10)
-
-##Step2: Data visualization ----
-
+```{r EDA_1 , warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, out.width = '65%', fig.align = 'center'}
 plot_ggpairs<- function(data, color = NULL, density_alpha = 0.5, plot_title = 'No title'){
   
   color_expr<- enquo(color)
@@ -262,17 +231,6 @@ plot_ggpairs<- function(data, color = NULL, density_alpha = 0.5, plot_title = 'N
   
 }
 
-
-
-train_raw_tbl %>% select(Attrition, 
-                         Age, 
-                         Gender, 
-                         MaritalStatus, 
-                         NumCompaniesWorked, 
-                         Over18, 
-                         DistanceFromHome) %>%
-                  plot_ggpairs(color = Attrition)
-
 ##Explore features by category ----
 
 ##1. Descriptive Features: Age, Gender, Marital Status ----
@@ -283,114 +241,91 @@ train_raw_tbl %>% select(Attrition,
                          NumCompaniesWorked, 
                          Over18, 
                          DistanceFromHome) %>%
-  plot_ggpairs(color = Attrition, plot_title = 'Data exploration for Descriptive Features')
+  plot_ggpairs(color = Attrition, plot_title = 'Data exploration for Descriptive Features divide by attrition')
 
 ##2. Employment Features: Department, Job Role, Jobe Level ----
 train_raw_tbl %>% select(Attrition, 
                          contains("employee"),
                          contains("department"),
                          contains("job")) %>%
-  plot_ggpairs(color = Attrition, plot_title = 'Data exploration for Employment Features')
+  plot_ggpairs(color = Attrition, plot_title = 'Data exploration for Employment Features divide by attrition')
 
 ##3. Compensation Features: HourlyRate, MonthIncome, StockoptionLevel ----
 train_raw_tbl %>% select(Attrition, 
                          contains("income"),
                          contains("rate"),
                          contains("stock")) %>%
-  plot_ggpairs(color = Attrition, plot_title = 'Data exploration for Compensation Features')
+  plot_ggpairs(color = Attrition, plot_title = 'Data exploration for Compensation Features divide by attrition')
+
+##8. Time based Features: Years at company, Years in current role ----
+train_raw_tbl %>% select(Attrition, 
+                         contains("years")) %>%
+  plot_ggpairs(color = Attrition, plot_title = 'Data exploration for Time based Features divide by attrition')
+
+```
+
+```{r EDA_2 , warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, out.width = '50%'}
 
 ##4. Survey Features: SatisfactioLevel, WorklifeBalance ----
 train_raw_tbl %>% select(Attrition, 
                          contains("satisfaction"),
                          contains("life")) %>%
-  plot_ggpairs(color = Attrition, plot_title = 'Data exploration for Survey Features')
+  plot_ggpairs(color = Attrition, plot_title = 'Data exploration for Survey Features divide by attrition')
 
 ##5. Performance Features: Job Involvement, Performance Rating ----
 train_raw_tbl %>% select(Attrition, 
                          contains("perfomance"),
                          contains("involvement")) %>%
-  plot_ggpairs(color = Attrition, plot_title = 'Data exploration for Performance Features')
+  plot_ggpairs(color = Attrition, plot_title = 'Data exploration for Performance Features divide by attrition')
 
 ##6. Worklife Features ----
 train_raw_tbl %>% select(Attrition, 
                          contains("overtime"),
                          contains("travel")) %>%
-  plot_ggpairs(color = Attrition, plot_title = 'Data exploration for Work-life balance Features')
+  plot_ggpairs(color = Attrition, plot_title = 'Data exploration for Work-life balance Features divide by attrition')
 
 ##7. Training and Education ----
 train_raw_tbl %>% select(Attrition, 
                          contains("training"),
                          contains("education")) %>%
-  plot_ggpairs(color = Attrition, plot_title = 'Data exploration for Training and Education Features')
+  plot_ggpairs(color = Attrition, plot_title = 'Data exploration for Training and Education Features divide by attrition')
 
-##8. Time based Features: Years at company, Years in current role ----
-train_raw_tbl %>% select(Attrition, 
-                         contains("years")) %>%
-  plot_ggpairs(color = Attrition, plot_title = 'Data exploration for Time based Features')
+
+```
+
+\pagebreak
+
+Analizzando le variabili abbiamo riscontrato la necessità di eseguire alcune modifiche in modo da poter essere meglio interpretati.
+Le modifiche apportate sono:
+
+* Rimozione variabile con zero varianza
+
+* Trasformazione di Yeo-Johnson
+
+* Centratura e normalizzazione variabili numeriche
+
+* Creazione variabili dummy delle variabili nominali 
+
+```{r data_prep_cor , warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, out.width = '50%'}
 
 #Data preparation ----
 
 ##Relabeling Features----
-source("HR_employee_attriction_case_study_2/01_Script_and_function/data_processing_pipeline.R")
+
+source("E:/Data_science/Portfolio/HR_employee_attriction_case_study_2/01_Script_and_function/data_processing_pipeline.R")
 
 train_readable_tbl<- process_hr_data_readable(train_raw_tbl, definition_raw_tbl)
 test_readable_tbl<- process_hr_data_readable(test_raw_tbl, definition_raw_tbl)
 
-#Education
+#Plot faceted hist
 
-#Before
-train_raw_tbl %>% ggplot(aes(Education)) +
-  geom_bar()
+source('E:/Data_science/Portfolio/HR_employee_attriction_case_study_2/01_Script_and_function/plot_hist_facet.R')
 
-#After
-train_readable_tbl %>% ggplot(aes(Education)) +
-  geom_bar()
+train_raw_tbl[1:11] %>% plot_hist_facet(bins = 10, ncol = 5, plot_title = 'Data as it is')
+train_raw_tbl[12:22] %>% plot_hist_facet(bins = 10, ncol = 5, plot_title = 'Data as it is part 2')
+train_raw_tbl[23:35] %>% plot_hist_facet(bins = 10, ncol = 5, plot_title = 'Data as it is part 3')
 
-#Plot faceted hist plot function
 
-plot_hist_facet<- function(data, 
-                           bins = 10, 
-                           ncol = 5,
-                           fct_reorder = FALSE,
-                           fct_rev = FALSE,
-                           fill = palette_light()[[3]],
-                           color = "white",
-                           scale = "free") {
-  
-  data_factored<- data %>% mutate_if(is.character, as.factor) %>%
-    mutate_if(is.factor, as.numeric) %>%
-    gather(key = key, value = value, factor_key = TRUE)
-  
-  if (fct_reorder) {
-    data_factored<- data_factored %>% mutate(key = as.character(key), as.factor())
-    
-  }
-  
-  if (fct_rev) {
-    data_factored<- data_factored %>% mutate(key = fct_rev(key))
-    
-  }
-  
-  g<- data_factored %>% ggplot(aes(x = value, group = key)) +
-    geom_histogram(bins = bins, fill = fill, color = color) +
-    facet_wrap(~key, ncol = ncol, scale = scale) +
-    theme_tq()
-  
-  return(g)
-}
-
-source('HR_employee_attriction_case_study_2/01_Script_and_function/plot_hist_facet.R')
-
-train_raw_tbl %>% plot_hist_facet(bins = 10, ncol = 5, plot_title = 'Data as it is')
-
-#Data preprocessing with recipe ----
-
-##Goal: Correlation analysis
-##1.Impute and NZV and Outliers ----
-recipe_obj<- recipe(Attrition ~.,train_readable_tbl) %>%
-  step_zv(all_predictors())
-
-##2.Transformations ----
 skewed_feature_names<- train_readable_tbl %>% select_if(is.numeric) %>% 
   map_df(skewness) %>%
   gather(factor_key = T) %>%
@@ -414,34 +349,6 @@ skewed_feature_names<- train_readable_tbl %>% select_if(is.numeric) %>%
 
 factor_names<- c("JobLevel", "StockOptionLevel")
 
-recipe_obj<- recipe(Attrition ~.,train_readable_tbl) %>%
-  step_zv(all_predictors()) %>%
-  step_YeoJohnson(skewed_feature_names) %>%
-  step_mutate_at(all_of(factor_names), fn = as.factor)
-
-
-##3.Discretize ----
-##4.Normalization (Scaling) ----
-recipe_obj<- recipe(Attrition ~.,train_readable_tbl) %>%
-  step_zv(all_predictors()) %>%
-  step_YeoJohnson(skewed_feature_names) %>%
-  step_mutate_at(all_of(factor_names), fn = as.factor) %>%
-  step_center(all_numeric()) %>%
-  step_scale(all_numeric())
-
-##5.Dummy variables ----
-recipe_obj<- recipe(Attrition ~.,train_readable_tbl) %>%
-  step_zv(all_predictors()) %>%
-  step_YeoJohnson(skewed_feature_names) %>%
-  step_mutate_at(all_of(factor_names), fn = as.factor) %>%
-  step_center(all_numeric()) %>%
-  step_scale(all_numeric()) %>%
-  step_dummy(all_nominal())
-
-##6.Interaction variables / Engineering Feature ----
-##7.Multivariate Transformation ----
-
-
 ##Final Recipe ----
 recipe_obj<- recipe(Attrition ~.,train_readable_tbl) %>%
   step_zv(all_predictors()) %>%
@@ -456,75 +363,20 @@ recipe_obj<- recipe(Attrition ~.,train_readable_tbl) %>%
 train_tbl<- bake(recipe_obj, train_readable_tbl)
 test_tbl<- bake(recipe_obj, test_readable_tbl)
 
-#Correlation Analysis ----
-
-# get_cor<- function(data, 
-#                    target, 
-#                    use = "pairwise.complete.obs",
-#                    fct_reorder = FALSE,
-#                    fct_rev = FALSE) {
-#   
-#   feature_exp<- enquo(target)
-#   feature_name<- quo_name(feature_exp)
-#   
-#   data_cor<- data %>% mutate_if(is.character, as.factor) %>%
-#     mutate_if(is.factor, as.numeric) %>%
-#     cor(use = use) %>%
-#     as_tibble() %>%
-#     mutate(feature = names(.)) %>%
-#     select(feature, !! feature_exp) %>%
-#     filter(!(feature == feature_name)) %>%
-#     mutate_if(is.character, as.factor)
-#   
-#   if (fct_reorder) {
-#     data_cor<- data_cor %>% mutate(feature = fct_reorder(feature, !! feature_exp)) %>%
-#       arrange(feature)
-#   }
-#   
-#   if (fct_rev) {
-#     data_cor<- data_cor %>% mutate(feature = fct_rev(feature)) %>%
-#       arrange(feature)
-#   }
-#   
-#   return(data_cor)
-# }
-
-source('HR_employee_attriction_case_study_2/01_Script_and_function/plot_cor.R')
-
-train_tbl %>% get_cor(target = Attrition_Yes, fct_reorder = T, fct_rev = T)
+train_tbl[1:11] %>% plot_hist_facet(bins = 10, ncol = 5, plot_title = 'Data after processing part 1')
+train_tbl[1:22] %>% plot_hist_facet(bins = 10, ncol = 5, plot_title = 'Data after processing part 2')
+train_tbl[22:35] %>% plot_hist_facet(bins = 10, ncol = 5, plot_title = 'Data after processing part 3')
 
 
-# plot_cor <- function(data, target, fct_reorder = FALSE, fct_rev = FALSE,
-#                      include_lbl = TRUE, lbl_precision = 2, lbl_position = "outward",
-#                      size = 2, line_size = 1, vert_size = 1, 
-#                      color_pos = palette_light()[[1]], color_neg = palette_light()[[2]]) {
-#   
-#   feature_exp<- enquo(target)
-#   feature_name<- quo_name(feature_exp)
-#   
-#   data_cor<- data %>% get_cor(!! feature_exp, fct_reorder = fct_reorder, fct_rev = fct_rev) %>%
-#     mutate(feature_name_text = round(!! feature_exp, lbl_precision)) %>%
-#     mutate(Correlation = case_when((!! feature_exp) >= 0 ~ "Positive", 
-#                                    T ~ "Negative") %>% as.factor())
-#   
-#   g<- data_cor %>% ggplot(aes_string(x = feature_name, y = "feature", group = "feature")) +
-#     geom_point(aes(color = Correlation), size = size) +
-#     geom_segment(aes(xend = 0, yend = feature, color = Correlation), size = line_size) +
-#     geom_vline(xintercept = 0, color = palette_light()[[1]], size = vert_size) +
-#     expand_limits(x = c(-1,1)) +
-#     theme_tq() +
-#     scale_color_manual(values = c(color_neg, color_pos))
-#   
-#   if (include_lbl) {
-#     g<- g + geom_label(aes(label = feature_name_text), hjust = lbl_position)
-#   }
-#   
-#   return(g)
-# }
+```
 
-train_tbl %>% plot_cor(target = Attrition_Yes, fct_reorder = T, fct_rev = T, plot_title = 'Correlation Funnel')
+Successivamente a questa lavorazione è stata calcolata la correlazione tra le diverse variabili e l'interuzione del rapporto lavorativo indicata dalla variabile **Attrition**.
 
-#Correlation Evaluation ----
+```{r Correlation , warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, out.width = '50%'}
+
+source('E:/Data_science/Portfolio/HR_employee_attriction_case_study_2/01_Script_and_function/plot_cor.R')
+
+#Correlation Evaluation 
 
 #1. Descriptive Features: Age, Gender, Marital Status
 train_tbl %>% select(Attrition_Yes, 
@@ -579,7 +431,23 @@ train_tbl %>% select(Attrition_Yes,
                      contains("years")) %>%
   plot_cor(target = Attrition_Yes, fct_reorder = T, fct_rev = T, plot_title = 'Correlation Funnel - Time based Features')
 
-#Ml Preprocessing----
+
+```
+
+Come evidenziato dai grafici alcuni fattori come la presenza di straordinari, il tipo di incarico lavorativo o la frequenza delle trasferte per motivi di lavoro sono positivamente 
+correllati, in maniera rilevante, con l'interruzione del rapporto lavorativo. 
+In contrapposizione la presenza di incetivi come l'assegnazione di Stock Option, il rating di performance molto alto o l'anzianità di servizio sono negativamente correlati
+all'interruzione del rapporto lavorativo rappresentando quindi, dei forti driver per il dipendente a rimanere in azienda. 
+
+\pagebreak
+
+## 6.0 Costruzione del sistema predittivo
+Sfruttando il sistema di modellazione automatico del framework H2o.ai è stato sviluppato un modello di *machine learning* in grado di predirre se un dipendente interromperà il
+rapporto lavorativo. 
+
+
+```{r Modelling_1 , warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, out.width = '50%', include = FALSE}
+#Ml Preprocessing
 
 recipe_obj_2<- recipe(Attrition ~., data = train_readable_tbl) %>%
   step_zv(all_predictors()) %>%
@@ -590,7 +458,7 @@ train_tbl<- bake(recipe_obj_2, new_data = train_readable_tbl)
 test_tbl<- bake(recipe_obj_2, new_data = test_readable_tbl)                            
 
 
-#Modelling ----
+#Modelling
 
 h2o.init()
 
@@ -615,10 +483,12 @@ automl_h2o_leaderboard
 h2o.get_best_model(automl_models_h20)
 
 
-h2o.saveModel(h2o.get_best_model(automl_models_h20),path = "HR_employee_attriction_case_study_2/03_Output/Model/")
+```
 
 
-#Making Predictions -----
+```{r Modelling_2 , warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, include=FALSE}
+
+#Making Predictions
 
 best_model<- h2o.get_best_model(automl_models_h20)
 
@@ -626,30 +496,12 @@ best_model<- h2o.get_best_model(automl_models_h20)
 prediction<- h2o.predict(best_model, test_tbl_h2o)
 
 prediction_tbl<- prediction %>% as_tibble()
-prediction_tbl
 
-#Visualize the leader board ----
+```
 
-data_transformed<- automl_models_h20@leaderboard %>% as_tibble() %>%
-  select(model_id, auc, logloss, aucpr) %>%
-  mutate(model_type = str_split(model_id, "_", simplify = T) %>% .[,1]) %>%
-  slice(1:20) %>%
-  rownames_to_column() %>%
-  mutate(model_id = as.factor(model_id) %>% reorder(auc),
-         model_type = as.factor(model_type)) %>%
-  gather(key = key, value = value, -c(model_id, model_type, rowname), factor_key = T) %>%
-  mutate(model_id = paste0(rowname, ". ", model_id) %>% as_factor() %>% fct_rev())
+```{r Modelling_3 , warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, out.width = '100%'}
 
-data_transformed %>% ggplot(aes(value, model_id, color = model_type)) +
-  geom_point(size = 3) +
-  geom_label(aes(label = round(value, 2), hjust = "inward")) +
-  facet_wrap(~key, scales = "free_x") +
-  theme_tq() +
-  scale_color_tq() +
-  labs(title = "H2o Leader Board Metrics", subtitle = paste0("Ordered by: AUC"),
-       y = "Model position, Model ID", x = "")
-
-#Make function
+#Visualize the leader board
 
 plot_h2o_leaderboard<- function(h2o_leaderboard, 
                                 order_by = c("auc", "logloss", "aucpr"),
@@ -698,7 +550,7 @@ plot_h2o_leaderboard<- function(h2o_leaderboard,
     stop(paste0("order_by = '", order_by, "' is not a permitted option"))
   }
   #Visualization
-  g<- data_transformed_tbl %>% ggplot(aes(value, model_id, color = model_type)) +
+  g<- data_transformed_tbl %>% ggplot(aes(value, substr(model_id,1, 20), color = model_type)) +
     geom_point(size = size) +
     facet_wrap(~key, scales = "free_x") +
     theme_tq() +
@@ -717,17 +569,17 @@ plot_h2o_leaderboard<- function(h2o_leaderboard,
   
 }
 
-#plot_h2o_leaderboard(automl_h2o_leaderboard, n_max = 10, size = 3)
+plot_h2o_leaderboard(automl_h2o_leaderboard, n_max = 10, size = 3)
+
+```
+
+```{r Modelling_4 , warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, out.width = '70%', fig.align='center'}
 
 
-
-#Assessing Performance ----
+#Assessing Performance
 h2o_performance<- h2o.performance(best_model, newdata = test_tbl_h2o)
 
-##Summary metrics ----
-h2o.auc(h2o_performance)
-
-h2o.confusionMatrix(h2o_performance) %>% as_tibble()
+##Summary metrics
 
 model_conf_mtrx<- confusionMatrix(prediction_tbl$predict, test_tbl$Attrition)
 
@@ -740,15 +592,15 @@ draw_confusion_matrix <- function(cm) {
   
   # create the matrix 
   rect(150, 430, 240, 370, col='#3F97D0')
-  text(195, 435, 'Class1', cex=1.2)
+  text(195, 435, 'Attrition_No', cex=1.2)
   rect(250, 430, 340, 370, col='#F7AD50')
-  text(295, 435, 'Class2', cex=1.2)
+  text(295, 435, 'Attrition_Yes', cex=1.2)
   text(125, 370, 'Predicted', cex=1.3, srt=90, font=2)
   text(245, 450, 'Actual', cex=1.3, font=2)
   rect(150, 305, 240, 365, col='#F7AD50')
   rect(250, 305, 340, 365, col='#3F97D0')
-  text(140, 400, 'Class1', cex=1.2, srt=90)
-  text(140, 335, 'Class2', cex=1.2, srt=90)
+  text(140, 400, 'Attrition_No', cex=1.2, srt=90)
+  text(140, 335, 'Attrition_Yes', cex=1.2, srt=90)
   
   # add in the cm results 
   res <- as.numeric(cm$table)
@@ -782,62 +634,10 @@ draw_confusion_matrix(model_conf_mtrx)
 performance_tbl<- h2o_performance %>% h2o.metric() %>% 
   as_tibble()
 
-performance_tbl %>% ggplot(aes(x = threshold)) +
-  geom_line(aes(y = precision), color = "blue", size = 1) +
-  geom_line(aes(y = recall), color = "red", size = 1) +
-  geom_vline(xintercept = h2o.find_threshold_by_max_metric(h2o_performance, "f1")) +
-  annotate(geom = 'text', label = 'F1 Threshold', x = h2o.find_threshold_by_max_metric(h2o_performance, "f1"), y = 0.25, angle = 90, vjust = 1.2) +
-  theme_tq() +
-  labs(title = "Precision Vs Recall", y = "value")
 
-##ROC Curve ----
-plot(h2o_performance, type = 'roc')
+```
 
-# p1 <- performance_tbl %>% ggplot(aes(fpr, tpr)) +
-#   geom_line(size = 1.5) +
-#   theme_tq() +
-#   scale_color_tq() +
-#   labs(title = "ROC", x = "FPR", y = "TPR") +
-#   theme(legend.direction = "vertical")
-
-
-##Gain/ Lift
-
-get_gain_lift <- function(h20_performance, test_tbl_h2o) {
-  
-  h20_performance %>% h2o.gainsLift() %>%
-    as_tibble() %>%
-    select(group, 
-           cumulative_data_fraction, 
-           cumulative_capture_rate, 
-           cumulative_lift) %>%
-    rename(gain = cumulative_capture_rate, lift = cumulative_lift) 
-  
-}
-
-gain_lift_tbl<- get_gain_lift(h2o_performance, test_tbl_h2o)
-
-p3 <- gain_lift_tbl %>% ggplot(aes(cumulative_data_fraction, gain)) +
-  geom_line(size = 1.5, color = "red") +
-  geom_segment(x = 0, y = 0, xend = 1, yend = 1, color = "black", size = 1) +
-  theme_tq() +
-  scale_color_tq() +
-  expand_limits(x = c(0, 1), y = c(0, 1)) +
-  labs(title = "Gain", x = "Cumulative Data Fraction", y = "Gain") +
-  theme(legend.position = "none")
-p3
-
-p4 <- gain_lift_tbl %>% ggplot(aes(cumulative_data_fraction, lift)) +
-  geom_line(size = 1.5, color = "red" ) +
-  geom_segment(x = 0, y = 1, xend = 1, yend = 1, 
-               color = "black", 
-               size = 1) +
-  theme_tq() +
-  scale_color_tq() +
-  expand_limits(x = c(0, 1), y = c(0, 1)) +
-  labs(title = "Lift", x = "Cumulative Data Fraction", y = "Lift")
-p4                        
-
+```{r Modelling_5 , warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, out.width = '70%', fig.align='center'}
 
 ##Combined plot ----
 plot_h2o_performance <- function(h2o_leaderboard, newdata, order_by = c("auc", "logloss"),
@@ -983,7 +783,7 @@ plot_h2o_performance <- function(h2o_leaderboard, newdata, order_by = c("auc", "
   p <- cowplot::plot_grid(p1, p2, p3, p4, ncol = 2) 
   
   p_title <- ggdraw() + 
-    draw_label("H2O Model Metrics", size = 18, fontface = "bold", 
+    draw_label("Best Model Metrics", size = 18, fontface = "bold", 
                colour = palette_light()[[1]])
   
   p_subtitle <- ggdraw() + 
@@ -1003,80 +803,108 @@ plot_h2o_performance(automl_h2o_leaderboard,
                      newdata = test_tbl_h2o, 
                      order_by = "auc", 
                      size = 1,
-                     max_models = 4)
+                     max_models = 1)
+
+```
 
 
+Come mostrato in figura il sistema ha generato diversi modelli che sono stati valutati principalmente utilizzando il punteggio AUC. Il miglior modello ha raggiunto il punteggio AUC
+di `r round(h2o.auc(h2o_performance), 2)`, un'accuratezza di `r round(model_conf_mtrx$overall[1], 2)`, una precisione di `r round(model_conf_mtrx$byClass[5],2)` che indica la 
+suscettibilità del modello ai falsi positivi (dipendenti che vengono indicati come in uscita ma in realtà rimangono) e un richiamo di `r round(model_conf_mtrx$byClass[6],2)` che 
+indica la suscettibilità del modello ai falsi negativi (dipendenti che vengono indicati come stabili ma in realtà terminano il rapporto lavorativo). E' facilmente prevedibile che 
+per questo caso d'uso la capacità minimizzare i falsi negativi abbia un'importanza superiore.
 
-#Lime ----
+Osservando il grafico del gain è stato possibile riscontrare che senza utilizzare il modello predittivo sviluppato considerando i 220 dipendenti del gruppo di test selezionati
+casualmente ci aspettiamo di avere 35 dipendeti che termineranno il rapporto lavorativo (media aziendale 16% - pag. 2) se invece venisse utilizzato il sistema predittivo su 
+i primi 10 dipendeti a più altro rischione ne verrebbero già individuati `r prediction_tbl %>% bind_cols(test_tbl) %>% select(predict:Yes, Attrition) %>% arrange(desc(Yes)) %>% head(10) %>% filter(Attrition == 'Yes') %>% count() %>% as.numeric()`, ovvero il 25.7% dei precedenti 35.
+
+Osservando il grafico lift invece, è possibile notare un aumento delle capacità di stima di 5.6 volte (9/1.6) su 10 dipendenti selezionati attraverso il sistema di raccomandazione.
+
+```{r Lime_1 , warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, include=FALSE}
+
+#Lime
 prediction_tbl<- prediction_tbl %>% bind_cols(test_tbl %>% select(Attrition, EmployeeNumber))
 
-test_tbl %>% slice(5) %>%
-  glimpse()
 
-##Lime single explanation  ----
+
+##Lime single explanation
 explainer_obj<- train_tbl %>% select(-Attrition) %>%
   lime(model = best_model,
        bin_continuous = TRUE,
        n_bins = 4,
        quantile_bins = TRUE)
 
-
-explanation<- test_tbl %>% slice(5) %>%
-  select(-Attrition) %>%
-  explain(explainer = explainer_obj,
-          n_labels = 1,
-          n_features = 8,
-          n_permutations = 5000,
-          kernel_width = 1)
-
-explanation
-
-explanation %>% as_tibble() %>%
-  select(feature:prediction)
-
-plot_features(explanation = explanation, ncol = 1)
+prediction_tbl_dummy<- prediction %>% as_tibble() %>% cbind(actual_attrition = test_tbl$Attrition)
 
 
-##Multiple explanation ----
-explanation_multpl<- test_tbl %>% slice(1:4) %>%
-  select(-Attrition) %>%
-  explain(explainer = explainer_obj,
-          n_labels = 1,
-          n_features = 8,
-          n_permutations = 5000,
-          kernel_width = 1)
+rnd_no<- sample(as.numeric(rownames(prediction_tbl_dummy[which(prediction_tbl_dummy$No >= 0.51),])), 3)
+rnd_yes<-sample(as.numeric(rownames(prediction_tbl_dummy[which(prediction_tbl_dummy$Yes >= 0.51),])), 3)
 
-explanation_multpl %>% as_tibble()
+for (i in c(1:3)) {
+  
+
+  assign(paste('explanation_no',i,sep='_'), test_tbl %>% slice(rnd_no[i]) %>%
+                                           select(-Attrition) %>%
+                                           explain(explainer = explainer_obj,
+                                                   n_labels = 1,
+                                                   n_features = 8,
+                                                   n_permutations = 5000,
+                                                   kernel_width = 1))
+
+}
+
+for (i in c(1:3)) {
+  
+
+  assign(paste('explanation_yes',i,sep='_'), test_tbl %>% slice(rnd_yes[i]) %>%
+                                           select(-Attrition) %>%
+                                           explain(explainer = explainer_obj,
+                                                   n_labels = 1,
+                                                   n_features = 8,
+                                                   n_permutations = 5000,
+                                                   kernel_width = 1))
+
+}
+
+```
+
+```{r Lime_2 , warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, out.width = '50%'}
 
 
-plot_features(explanation = explanation_multpl, ncol = 4)
+plot_features(explanation = explanation_no_1, ncol = 1)
+plot_features(explanation = explanation_no_2, ncol = 1)
+plot_features(explanation = explanation_no_3, ncol = 1)
+plot_features(explanation = explanation_yes_1, ncol = 1)
+plot_features(explanation = explanation_yes_2, ncol = 1)
+plot_features(explanation = explanation_yes_3, ncol = 1)
 
-explanation_multpl_2<- test_tbl %>% slice(1:25) %>%
-  select(-Attrition) %>%
-  explain(explainer = explainer_obj,
-          n_labels = 1,
-          n_features = 8,
-          n_permutations = 5000,
-          kernel_width = 1)
+```
 
-plot_explanations(explanation = explanation_multpl_2)
+Utilizzando il modello predittivo è stato possibile creare un grafico individuale per ogni dipendente con le 8 variabili che secondo il modello maggiormente supportano o contraddicono
+l'esito predetto dal modello. A titolo di esempio sono stati qui presentati 6 grafici di 6 dipendenti diversi, 3 che hanno interrotto il rapporto e 3 che sono rimasti.
+\pagebreak
 
-#Expected Value ----
+## 7.0 Strategie e outcome stimati
+Sfruttando il sistema predittivo sviluppato, è stato possibile testare sul campione di dipendenti presenti nel data set di test e stimare gli effetti per alcune strategie con 
+l'obbiettivo di mitigare gli effetti dei maggiori driver che favoriscono l'interruzione del rapporto lavorativo, come ad esempio l'assegnazione di ore di straordinario o la 
+mancanza di incentivi salariali come le StockOption.
 
-##Calculate expected value with OT ----
-prediction_wth_OT_tbl<- prediction_tbl %>% bind_cols(test_tbl %>% select(EmployeeNumber, 
+```{r Expected_v_1 , warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, include=FALSE}
+#Expected Value
+
+##Calculate expected value with OT
+prediction_with_OT_tbl<- prediction_tbl %>% bind_cols(test_tbl %>% select(EmployeeNumber, 
                                                                          MonthlyIncome, 
                                                                          OverTime))
 
-
-ev_wth_OT_tbl<- prediction_wth_OT_tbl %>% 
+ev_wth_OT_tbl<- prediction_with_OT_tbl %>% 
   mutate(attrition_cost = calculate_attrition_cost(salary = MonthlyIncome*12, net_revenue_per_employee = 250000)) %>%
   mutate(cost_of_policy_change = 0) %>%
   mutate(expected_attrition_cost = Yes * (attrition_cost + cost_of_policy_change) + No * cost_of_policy_change)
 
 total_ev_wth_OT_tbl<- ev_wth_OT_tbl %>% summarise(total_expct_attrition_cost_0 = sum(expected_attrition_cost))
 
-##Calculate expected value with NO OT ----
+##Calculate expected value with NO OT
 
 test_NO_OT_tbl<- test_tbl %>% mutate(OverTime = fct_recode(OverTime, "No" = "Yes"))
 
@@ -1086,7 +914,7 @@ prediction_NO_OT_tbl<- h2o.predict(best_model, as.h2o(test_NO_OT_tbl)) %>%
             test_NO_OT_tbl %>% select(OverTime)) %>%
   rename(OverTime_0 = OverTime...6, OverTime_1 = OverTime...7)
 
-prediction_NO_OT_tbl
+
 
 avg_overtime_pct<- 0.1
 
@@ -1096,18 +924,16 @@ ev_wth_NO_OT_tbl<- prediction_NO_OT_tbl %>%
                                            TRUE ~ 0 )) %>%
   mutate(expected_attrition_cost = Yes * (attrition_cost + cost_of_policy_change) + No * cost_of_policy_change)
 
-ev_wth_NO_OT_tbl
 
 total_ev_wth_NO_OT_tbl<- ev_wth_NO_OT_tbl %>% summarise(total_expct_attrition_cost_1 = sum(expected_attrition_cost))
 
-total_ev_wth_NO_OT_tbl
 
-##Savings calculation ----
-bind_cols(total_ev_wth_OT_tbl, total_ev_wth_NO_OT_tbl) %>% 
+##Savings calculation
+savings_NO_OT<- bind_cols(total_ev_wth_OT_tbl, total_ev_wth_NO_OT_tbl) %>% 
   mutate(savings = total_expct_attrition_cost_0 - total_expct_attrition_cost_1,
          pct_savings = savings/total_expct_attrition_cost_0)
 
-#Threshold & Rates ----
+#Threshold & Rates
 performance_h2o<- best_model %>% h2o.performance(test_tbl_h2o)
 
 rates_by_threshold_tbl<- performance_h2o %>% h2o.metric() %>% as_tibble()
@@ -1116,20 +942,10 @@ rates_by_threshold_tbl %>% select(threshold, f1, tnr:tpr) %>%
   filter(f1  == max(f1)) %>%
   slice(1)
 
-rates_by_threshold_tbl %>% select(threshold, f1, tnr:tpr) %>%
-  gather(key = "key", value = "value", tnr:tpr, factor_key = TRUE) %>%
-  mutate(key = fct_reorder2(key, threshold, value)) %>%
-  ggplot(aes(threshold, value, color = key)) +
-  geom_point() +
-  geom_smooth() +
-  theme_tq() +
-  scale_color_tq() +
-  theme(legend.position = "right") +
-  labs(title = "Expected Rates", x = "Threshold", y = "Value")
 
-
-##Calculate expected value with targeted OT ----
-max_f1_tbl<- rates_by_threshold_tbl %>% select(threshold, f1, tnr:tpr) %>% 
+##Calculate expected value with targeted OT
+max_f1_tbl<- rates_by_threshold_tbl %>% 
+  select(threshold, f1, tnr:tpr) %>% 
   filter(f1 == max(f1)) %>%
   slice(1)
 
@@ -1140,22 +956,24 @@ tpr<- max_f1_tbl$tpr
 
 threshold<- max_f1_tbl$threshold
 
-test_targeted_OT_tbl<- test_tbl %>% add_column(Yes = predictions_with_OT_tbl$Yes) %>%
+test_targeted_OT_tbl<- test_tbl %>% 
+  add_column(Yes = prediction_with_OT_tbl$Yes) %>%
   mutate(OverTime = case_when(Yes >= threshold ~ factor("No", levels = levels(test_tbl$OverTime)),
                               TRUE ~ OverTime)) %>%
   select(-Yes)
 
-predictions_targeted_OT_tbl <- best_model %>% h2o.predict(newdata = as.h2o(test_targeted_OT_tbl)) %>%
+predictions_targeted_OT_tbl <- best_model %>% 
+  h2o.predict(newdata = as.h2o(test_targeted_OT_tbl)) %>%
   as_tibble() %>%
   bind_cols(test_tbl %>% select(EmployeeNumber, MonthlyIncome, OverTime),
             test_targeted_OT_tbl %>% select(OverTime)) %>%
   rename(OverTime_0 = OverTime...6, OverTime_1 = OverTime...7)
 
-avg_overtime_pct<- 0.1
 
-ev_targeted_OT_tbl <- predictions_targeted_OT_tbl %>% mutate(attrition_cost = calculate_attrition_cost(n = 1,
-                                                                                                       salary = MonthlyIncome * 12,
-                                                                                                       net_revenue_per_employee = 250000))%>%
+ev_targeted_OT_tbl <- predictions_targeted_OT_tbl %>% 
+  mutate(attrition_cost = calculate_attrition_cost(n = 1,
+                                                   salary = MonthlyIncome * 12,
+                                                   net_revenue_per_employee = 250000))%>%
   mutate(cost_of_policy_change = case_when(OverTime_0 == "Yes" & OverTime_1 == "No" ~ attrition_cost * avg_overtime_pct,
                                            TRUE ~ 0)) %>%
   mutate(cb_tn = cost_of_policy_change,
@@ -1165,21 +983,93 @@ ev_targeted_OT_tbl <- predictions_targeted_OT_tbl %>% mutate(attrition_cost = ca
          expected_attrition_cost = Yes * (tpr*cb_tp + fnr*cb_fn) + 
            No *  (tnr*cb_tn + fpr*cb_fp)) 
 
-ev_targeted_OT_tbl %>% select(attrition_cost, cost_of_policy_change, cb_tn, cb_fp, cb_tp, cb_fn, expected_attrition_cost)
+#ev_targeted_OT_tbl %>% select(attrition_cost, cost_of_policy_change, cb_tn, cb_fp, cb_tp, cb_fn, expected_attrition_cost)
 
 total_ev_tgt_OT_tbl<- ev_targeted_OT_tbl %>% summarise(total_expct_attrition_cost_1 = sum(expected_attrition_cost))
 
-total_ev_tgt_OT_tbl
 
-##Savings Calculation ----
+
+##Savings Calculation
 
 saving_tgt_tbl<- bind_cols(total_ev_wth_OT_tbl, total_ev_tgt_OT_tbl) %>% 
-  mutate(savings = total_expct_attrition_cost_0 - total_expct_attrition_cost_1)
+  mutate(savings = total_expct_attrition_cost_0 - total_expct_attrition_cost_1,
+         pct_savings = savings/total_expct_attrition_cost_0)
 
-saving_tgt_tbl
 
-#Optimizing by threshold ----
-##make function to calculate savings by threshold ----
+
+```
+
+
+```{r Expected_v_2 , warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, out.width = '50%'}
+
+savings_NO_OT_Tr<- as.data.frame(t(savings_NO_OT))
+
+savings_NO_OT_Tr<- cbind(group = rownames(savings_NO_OT_Tr), savings_NO_OT_Tr)
+
+rownames(savings_NO_OT_Tr) <- 1:nrow(savings_NO_OT_Tr)
+
+savings_NO_OT_Tr[1,1]<- 'Total expected Attrition cost as it is'
+savings_NO_OT_Tr[2,1]<- 'Total expected Attrition cost with No OverTime policy'
+
+savings_NO_OT_Tr$group<- paste(savings_NO_OT_Tr$group, scales::dollar(round(savings_NO_OT_Tr$V1, 1)), sep = ', ')
+
+
+
+tr_pl_no_ot<- savings_NO_OT_Tr[1:3, 1:2] %>% treemap::treemap(index = 'group', 
+                                                    vSize = 'V1', 
+                                                    type = 'index',
+                                                    palette = 'Set1',
+                                                    title = 'Expected Attrition Cost and Savings with NO Over Time Policy')
+                    
+
+rates_by_threshold_tbl %>% select(threshold, f1, tnr:tpr) %>%
+  gather(key = "key", value = "value", tnr:tpr, factor_key = TRUE) %>%
+  mutate(key = fct_reorder2(key, threshold, value)) %>%
+  ggplot(aes(threshold, value, color = key)) +
+  geom_point() +
+  geom_smooth() +
+  theme_tq() +
+  scale_color_tq() +
+  theme(legend.position = "right") +
+  labs(title = "Expected Rates", 
+       x = "Threshold", 
+       y = "Value")
+
+saving_tgt_tbl_Tr<- as.data.frame(t(saving_tgt_tbl))
+saving_tgt_tbl_Tr<- cbind(group = rownames(saving_tgt_tbl_Tr), saving_tgt_tbl_Tr)
+rownames(saving_tgt_tbl_Tr) <- 1:nrow(saving_tgt_tbl_Tr)
+
+saving_tgt_tbl_Tr[1,1]<- 'Total expected Attrition cost as it is'
+saving_tgt_tbl_Tr[2,1]<- 'Total expected Attrition cost with Targeted OverTime policy'
+saving_tgt_tbl_Tr$group<- paste(saving_tgt_tbl_Tr$group, scales::dollar(round(saving_tgt_tbl_Tr$V1, 1)), sep = ', ')
+
+tr_pl_tgt_ot<- saving_tgt_tbl_Tr[1:3, 1:2] %>% treemap::treemap(index = 'group', 
+                                                                vSize = 'V1', 
+                                                                type = 'index',
+                                                                palette = 'Set1',
+                                                                title = 'Expected Attrition Cost and Savings with Targeted Over Time at max F1 Policy')
+                    
+
+```
+
+La prima strategia testata grazie al sistema predittivo sviluppato è stata quella di bloccare l'assegnazione di ore di straordinario per tutti i dipendenti in modo da minimizzare 
+il rischio di interruzioni del rapporto lavorativo dovute alle troppe ore. Avremo dunque sia un risparmio sul salario sia un risparmio dei costi legati all'interruzione del rapporto
+a discapito però della produttività.
+Come possiamo vedere dal primo grafico, il risparmio stimato è di `r scales::dollar(savings_NO_OT$savings)`che corrisponde al
+`r scales::percent(savings_NO_OT$pct_savings)` della spesa *"baseline"* di `r scales::dollar(savings_NO_OT$total_expct_attrition_cost_0)` calcolata stimando i costi *as it is*.
+
+Successivamente, è stata testata la possibilità di autorizzare le ore di straordinario solo a dipendenti selezionati dal sistema predittivo che non subiscono, o solo in maniera minore,
+l'influenza negativa delle ore lavorative aggiuntive. In questo caso si cerca di bilanciare i 3 fattori: salario, costo interruzione del rapporto e produttività.
+Utilizzando i valori estrapolati dal modello a max F1, una metrica che fornisce la misura di quanto bene un classificatore binario può individuare i casi positivi (dato un valore di soglia),
+è stato simulato di assegnare in maniera mirata le ore di straordinario con i risultati mostrati nel terzo grafico. Come possiamo vedere il risparmio stimato è di 
+`r scales::dollar(saving_tgt_tbl$savings)` che corrisponde al `r scales::percent(saving_tgt_tbl$pct_savings)` rispetto al valore *"baseline"* calcolato precedentemente.
+
+
+
+```{r Expected_v_3 , warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, include=FALSE}
+
+#Optimizing by threshold
+##make function to calculate savings by threshold
 calculate_savings_by_threshold <- function(test_data, h2o_model, threshold = 0,
                                            tnr = 0, fpr = 1, fnr = 0, tpr = 1) {
   
@@ -1295,7 +1185,7 @@ calculate_savings_by_threshold <- function(test_data, h2o_model, threshold = 0,
 
 
 
-##Optimization ----
+##Optimization
 
 max_f1_savings<- calculate_savings_by_threshold(test_tbl, 
                                                 best_model, 
@@ -1324,20 +1214,23 @@ rates_by_threshold_opt_tbl<- rates_by_threshold_tbl %>%
                                           test_data = test_tbl, 
                                           h2o_model = best_model)))
 
-rates_by_threshold_opt_tbl
+
+```
+
+```{r Expected_v_4 , warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, out.width = '80%', fig.align='center'}
 
 rates_by_threshold_opt_tbl %>% ggplot(aes(threshold, savings)) +
   geom_line(color = palette_light()[[1]]) +
   geom_point(color = palette_light()[[1]]) +
   #Target OT optimized saving
   geom_point(shape = 21, size = 5, color = palette_light()[[3]],
-             data = rates_by_threshold_opt_tbl %>% filter(savings == max(savings))) +
+             data = rates_by_threshold_opt_tbl %>% filter(savings == max(savings)) %>% slice(1)) +
   geom_label(aes(label = scales::dollar(savings)),
              vjust = -0.8, color = palette_light()[[3]],
-             data = rates_by_threshold_opt_tbl %>% filter(savings == max(savings))) +
+             data = rates_by_threshold_opt_tbl %>% filter(savings == max(savings)) %>% slice(1)) +
   annotate("text", 
-           x = rates_by_threshold_opt_tbl %>% filter(savings == max(savings)) %>% select(threshold) %>% as.numeric(),
-           y = rates_by_threshold_opt_tbl %>% filter(savings == max(savings)) %>% select(savings) %>% as.numeric(),
+           x = rates_by_threshold_opt_tbl %>% filter(savings == max(savings)) %>% select(threshold) %>% slice(1) %>%  as.numeric(),
+           y = rates_by_threshold_opt_tbl %>% filter(savings == max(savings)) %>% select(savings) %>% slice(1) %>% as.numeric(),
            vjust = -4,
            label = "Targeted OT Policy", 
            color = palette_light()[[3]]) +
@@ -1359,26 +1252,26 @@ rates_by_threshold_opt_tbl %>% ggplot(aes(threshold, savings)) +
            color = palette_light()[[3]]) +
   #No OT saving
   geom_point(shape = 21, size = 5, color = palette_light()[[3]],
-             data = rates_by_threshold_opt_tbl %>% filter(threshold == min(threshold))) +
+             data = rates_by_threshold_opt_tbl %>% filter(threshold == min(threshold)) %>% slice(1)) +
   geom_label(aes(label = scales::dollar(savings)),
              vjust = -0.8, color = palette_light()[[2]],
-             data = rates_by_threshold_opt_tbl %>% filter(threshold == min(threshold))) +
+             data = rates_by_threshold_opt_tbl %>% filter(threshold == min(threshold)) %>% slice(1)) +
   annotate("text", 
            x = 0, 
            vjust = -4,
-           y = rates_by_threshold_opt_tbl %>% filter(threshold == min(threshold)) %>% select(savings) %>% as.numeric(), 
+           y = rates_by_threshold_opt_tbl %>% filter(threshold == min(threshold)) %>% select(savings) %>% slice(1) %>% as.numeric(), 
            label = "NO OT Policy", 
            color = palette_light()[[2]]) +
   #No policy change
   geom_point(shape = 21, size = 5, color = palette_light()[[3]],
-             data = rates_by_threshold_opt_tbl %>% filter(threshold == max(threshold))) +
+             data = rates_by_threshold_opt_tbl %>% filter(threshold == max(threshold)) %>% slice(1)) +
   geom_label(aes(label = scales::dollar(savings)),
              vjust = -0.8, color = palette_light()[[2]],
-             data = rates_by_threshold_opt_tbl %>% filter(threshold == max(threshold))) +
+             data = rates_by_threshold_opt_tbl %>% filter(threshold == max(threshold)) %>% slice(1)) +
   annotate("text", 
-           x = rates_by_threshold_opt_tbl %>% filter(threshold == max(threshold)) %>% select(threshold) %>% as.numeric(), 
+           x = rates_by_threshold_opt_tbl %>% filter(threshold == max(threshold)) %>% select(threshold) %>% slice(1) %>% as.numeric(), 
            vjust = -4,
-           y = rates_by_threshold_opt_tbl %>% filter(threshold == max(threshold)) %>% select(savings) %>% as.numeric(), 
+           y = rates_by_threshold_opt_tbl %>% filter(threshold == max(threshold)) %>% select(savings) %>% slice(1) %>% as.numeric(), 
            label = "No policy change", 
            color = palette_light()[[2]]) +
   theme_tq() +
@@ -1387,10 +1280,19 @@ rates_by_threshold_opt_tbl %>% ggplot(aes(threshold, savings)) +
                      breaks = seq(0, 1, by = 0.2)) +
   scale_y_continuous(labels = scales::dollar) +
   labs(title = 'Saving optimization by threshold',
-       subtitle = 'Targeted Overtime and Stock option policy')
+       subtitle = 'Savings using Targeted Overtime policy ')
 
-#Sensitivity analysis ----
-## Create sensitivity function ----
+```
+
+Per massimizzare il risparmio è stato realizzato un sistema di ottimizzazione che andasse a ottimizzare l'assegnazione di ore di straordinario ai dipendenti selezionati dal modello 
+in base alla probabilità di lasciare l'azienda. Quindi, se venisse vietata l'assegnazione di straordinari ai dipendenti a cui venga assegnata una probabilità di lasciare l'azienda 
+superiore al `r scales::percent(as.numeric(rates_by_threshold_opt_tbl %>% filter(savings == max(savings)) %>% slice(1) %>% select(threshold)))` si otterrà un risparmio stimato di
+`r scales::dollar(as.numeric(rates_by_threshold_opt_tbl %>% filter(savings == max(savings)) %>% slice(1) %>% select(savings)))`
+
+```{r Expected_v_5 , warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, include=FALSE}
+
+#Sensitivity analysis
+## Create sensitivity function
 calculate_savings_by_threshold_2 <- function(test_data, h2o_model, threshold = 0,
                                              tnr = 0, fpr = 1, fnr = 0, tpr = 1,
                                              avg_overtime_pct = 0.10,
@@ -1505,7 +1407,7 @@ calculate_savings_by_threshold_2 <- function(test_data, h2o_model, threshold = 0
   
 }
 
-##Perform analysis ----
+##Perform analysis
 max_saving_rates_tbl<- rates_by_threshold_opt_tbl %>% filter(savings == max(savings))
 
 calculate_savings_by_threshold_2(test_data = test_tbl, 
@@ -1532,18 +1434,21 @@ sensitivity_tbl<- list(avg_overtime_pct = seq(0.05, 0.30, by = 0.05),
   mutate(savings = pmap_dbl(.l = list(avg_overtime_pct = avg_overtime_pct,
                                       net_revenue_per_employee = net_revenue_per_employee),
                             .f = calculate_saving_by_threshold_2_preloaded))
+```
 
-sensitivity_tbl
+```{r Expected_v_6 , warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, out.width = '80%', fig.align='center'}
+
 
 sensitivity_tbl %>% ggplot(aes(avg_overtime_pct, net_revenue_per_employee)) +
   geom_tile(aes(fill = savings)) +
   geom_label(aes(label = round(savings, 0) %>% scales::dollar())) +
   theme_tq() +
-  theme(legend.position = "none") +
+  theme(legend.position = "right") +
   scale_fill_gradient2(low = palette_light()[[2]], 
                        mid = "white", 
                        high = palette_light()[[1]],
-                       midpoint = 0) +
+                       midpoint = 0,
+                       labels = scales::dollar_format()) +
   scale_x_continuous(labels = scales::percent,
                      breaks = seq(0.05, 0.3, by = 0.05)) +
   scale_y_continuous(labels = scales::dollar) +
@@ -1552,7 +1457,17 @@ sensitivity_tbl %>% ggplot(aes(avg_overtime_pct, net_revenue_per_employee)) +
        x = "Average Overtime Percentage",
        y = "Net Revenue Per Employee")
 
-#Stock option optimization by threshold----
+```
+
+E' stato possibile infine, realizzare un grafico che mostri come la percentuale  di straordinari (sul totale di ore contrattualizzate dal dipendente), la produttività e
+il risparmio stimato rispetto al costo *"baseline"* delle interruzioni di rapporto lavorativo siano in relazione
+
+In aggiunta alle due strategie precedentemente testate è stato possibile simulare una strategia di incetivo a non interrompere il rapporto lavorativo. Il modello come precedentemente 
+mostrato ha individuato nell'assegnazione di Stock Options un forte incentivo al rimanere. 
+
+```{r Expected_v_7 , warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, include=FALSE}
+
+#Stock option optimization by threshold
 stock_option_cost<- 5000
 
 calculate_savings_by_threshold_3 <- function(data, h2o_model, threshold = 0,
@@ -1717,20 +1632,25 @@ rates_by_threshold_opt_tbl_2<- rates_by_threshold_tbl %>% select(threshold, tnr:
                                           h2o_model = best_model)))
 
 
+```
+
+```{r Expected_v_8 , warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, out.width = '80%', fig.align='center'}
+
 rates_by_threshold_opt_tbl_2 %>% ggplot(aes(threshold, savings)) +
   geom_line(color = palette_light()[[1]]) +
   geom_point(color = palette_light()[[1]]) +
   #Target OT optimized saving
   geom_point(shape = 21, size = 5, color = palette_light()[[3]],
-             data = rates_by_threshold_opt_tbl_2 %>% filter(savings == max(savings))) +
+             data = rates_by_threshold_opt_tbl_2 %>% filter(savings == max(savings)) %>% slice(1)) +
   geom_label(aes(label = scales::dollar(savings)),
-             vjust = 0.4, hjust = -0.3, color = palette_light()[[3]],
-             data = rates_by_threshold_opt_tbl_2 %>% filter(savings == max(savings))) +
+             vjust = 4, hjust = -0.2, color = palette_light()[[3]],
+             data = rates_by_threshold_opt_tbl_2 %>% filter(savings == max(savings)) %>% slice(1)) +
   annotate("text", 
-           x = rates_by_threshold_opt_tbl_2 %>% filter(savings == max(savings)) %>% select(threshold) %>% as.numeric(), 
-           hjust = -0.50,
+           x = rates_by_threshold_opt_tbl_2 %>% filter(savings == max(savings)) %>% select(threshold) %>% slice(1) %>% as.numeric(), 
+           hjust = 2,
            vjust = 2,
-           y = rates_by_threshold_opt_tbl_2 %>% filter(savings == max(savings)) %>% select(savings) %>% as.numeric(), 
+           angle = 90,
+           y = rates_by_threshold_opt_tbl_2 %>% filter(savings == max(savings)) %>% select(savings) %>% slice(1) %>% as.numeric(), 
            label = "Targeted OT & SO", 
            color = palette_light()[[3]]) +
   #Saving at max F1
@@ -1748,27 +1668,27 @@ rates_by_threshold_opt_tbl_2 %>% ggplot(aes(threshold, savings)) +
            color = palette_light()[[3]]) +
   #No OT & SO saving
   geom_point(shape = 21, size = 5, color = palette_light()[[3]],
-             data = rates_by_threshold_opt_tbl_2 %>% filter(threshold == min(threshold))) +
+             data = rates_by_threshold_opt_tbl_2 %>% filter(threshold == min(threshold)) %>% slice(1)) +
   geom_label(aes(label = scales::dollar(savings)),
              vjust = 1.5, color = palette_light()[[2]],
-             data = rates_by_threshold_opt_tbl_2 %>% filter(threshold == min(threshold))) +
+             data = rates_by_threshold_opt_tbl_2 %>% filter(threshold == min(threshold)) %>% slice(1)) +
   annotate("text", 
            x = 0, 
-           hjust = 0.5,
+           hjust = 0.55,
            vjust = 4,
-           y = rates_by_threshold_opt_tbl_2 %>% filter(threshold == min(threshold)) %>% select(savings) %>% as.numeric(), 
+           y = rates_by_threshold_opt_tbl_2 %>% filter(threshold == min(threshold)) %>% select(savings) %>% slice(1) %>% as.numeric(), 
            label = "NO OT Policy", 
            color = palette_light()[[2]]) +
   #No policy change
   geom_point(shape = 21, size = 5, color = palette_light()[[3]],
-             data = rates_by_threshold_opt_tbl_2 %>% filter(threshold == max(threshold))) +
+             data = rates_by_threshold_opt_tbl_2 %>% filter(threshold == max(threshold)) %>% slice(1)) +
   geom_label(aes(label = scales::dollar(savings)),
              vjust = -0.8, color = palette_light()[[2]],
-             data = rates_by_threshold_opt_tbl_2 %>% filter(threshold == max(threshold))) +
+             data = rates_by_threshold_opt_tbl_2 %>% filter(threshold == max(threshold)) %>% slice(1)) +
   annotate("text", 
-           x = rates_by_threshold_opt_tbl_2 %>% filter(threshold == max(threshold)) %>% select(threshold) %>% as.numeric(), 
-           hjust = 0.3,
-           y = rates_by_threshold_opt_tbl_2 %>% filter(threshold == max(threshold)) %>% select(savings) %>% as.numeric(),
+           x = rates_by_threshold_opt_tbl_2 %>% filter(threshold == max(threshold)) %>% select(threshold) %>% slice(1) %>% as.numeric(), 
+           hjust = 0.38,
+           y = rates_by_threshold_opt_tbl_2 %>% filter(threshold == max(threshold)) %>% select(savings) %>% slice(1) %>% as.numeric(),
            vjust = -4,
            label = "No policy change", 
            color = palette_light()[[2]]) +
@@ -1785,7 +1705,13 @@ rates_by_threshold_opt_tbl_2 %>% ggplot(aes(threshold, savings)) +
   labs(title = 'Savings optimization by threshold',
        subtitle = 'Targeted Overtime and Stock option policy')
 
-#Sensitivity analysis for Stock option ----
+```
+Utilizzando entrambe le strategie di assegnazione mirata sia delle ore di straordinario sia degli incentivi salariali come le Stock Option è stato migliorato motevolmente il
+valore del risparmio stimato sui costi di interruzione del rapporto lavorativo.
+Anche in questo caso, è stato possibile creare un grafico che mettesse in relazione sia l'assegnazione delle ore di straordinario, sia quella degli incentivi salariali e il risparmio stimato sui costi di interruzione del rapporto lavorativo.
+
+```{r Expected_v_9 , warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, include=FALSE}
+#Sensitivity analysis for Stock option
 
 max_saving_rates_tbl_2<- rates_by_threshold_opt_tbl_2 %>% filter(savings == max(savings))
 
@@ -1809,17 +1735,22 @@ sensitivity_tbl_2<- list(avg_overtime_pct = seq(0.05, 0.30, by = 0.05),
                                       net_revenue_per_employee = net_revenue_per_employee),
                             .f = calculate_saving_by_threshold_3_preloaded))
 
-sensitivity_tbl_2
+```
+
+
+```{r Expected_v_10 , warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, out.width = '80%', fig.align='center'}
+
 
 sensitivity_tbl_2 %>% ggplot(aes(avg_overtime_pct, stock_option_cost)) +
   geom_tile(aes(fill = savings)) +
   geom_label(aes(label = round(savings, 0) %>% scales::dollar())) +
   theme_tq() +
-  theme(legend.position = "none") +
+  theme(legend.position = "right") +
   scale_fill_gradient2(low = palette_light()[[2]], 
                        mid = "white", 
                        high = palette_light()[[1]],
-                       midpoint = 0) +
+                       midpoint = 0,
+                       labels = scales::dollar_format()) +
   scale_x_continuous(labels = scales::percent,
                      breaks = seq(0.05, 0.3, by = 0.05)) +
   scale_y_continuous(labels = scales::dollar) +
@@ -1828,9 +1759,17 @@ sensitivity_tbl_2 %>% ggplot(aes(avg_overtime_pct, stock_option_cost)) +
        x = "Average Overtime Percentage",
        y = "Stock Option Cost")
 
-# RECOMMENDATION ALGORITHM ----
+```
 
-## 1.0 Discretizing features  ----
+## 8.0 Strategie personali per dipendente
+
+Come ultima attività è stato sviluppato un sistema di raccomandazione di strategie personali per ogni dipendente, il tutto basato sul medesimo modello matematico.
+
+```{r Reco_empl_act_1 , warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, out.width = '50%'}
+
+# RECOMMENDATION ALGORITHM
+
+## 1.0 Discretizing features
 recipe_obj_3<- recipe(Attrition ~., data = train_readable_tbl) %>%
   step_zv(all_predictors()) %>%
   step_mutate_at(all_of(factor_names), fn = as.factor) %>%
@@ -1863,11 +1802,10 @@ correlation_results_tbl %>% ggplot(aes(Attrition_Yes, feature_base, color = rele
   labs(title = "Correlation Analysis: Reccomandation Strategy Development", 
        subtitle = "Discretizing features to help identify a strategy")
 
-## 2.0 Recommendation Strategy Development Worksheet ----
+## 2.0 Recommendation Strategy Development Worksheet
 
-## 3.0 Recommendation Algorithm Development ----
-## 3.1 Personal Development (Mentorship, Education) ----
-tidy(recipe_obj, number = 3) %>% filter(str_detect(terms, "Role"))
+## 3.0 Recommendation Algorithm Development
+## 3.1 Personal Development (Mentorship, Education
 
 tdt <- function(inpdt){
   transposed <- t(inpdt[,-1,with=F]);
@@ -1909,10 +1847,11 @@ train_readable_tbl %>% select(YearsAtCompany,
   scale_fill_tq() +
   labs(title = 'Employee and suggested treatment',
        subtitle = 'Personal Development',
-       x = 'Number of employee')
+       x = 'Number of employee') +
+  theme(legend.position = 'NONE')
   
 
-# 4.2 Professional Development (Promotion Readiness) ----
+# 4.2 Professional Development (Promotion Readiness
 train_readable_tbl %>% select(JobLevel,
                               YearsInCurrentRole,
                               JobInvolvement,
@@ -1953,10 +1892,11 @@ train_readable_tbl %>% select(JobLevel,
   scale_fill_tq() +
   labs(title = 'Employee and suggested treatment',
        subtitle = 'Professional Development',
-       x = 'Number of employee')
+       x = 'Number of employee') +
+  theme(legend.position = 'NONE')
 
 
-# 4.3 Work Life Balance ----
+# 4.3 Work Life Balance
 
 train_readable_tbl %>% select(OverTime, 
                               WorkLifeBalance, 
@@ -1990,79 +1930,9 @@ train_readable_tbl %>% select(OverTime,
   scale_fill_tq() +
   labs(title = 'Employee and suggested treatment',
        subtitle = 'Work Life Balance Development',
-       x = 'Number of employee')
+       x = 'Number of employee') +
+  theme(legend.position = 'NONE')
 
-
-#5.0 Recommendation functions ----
-
-recommend_strategies<- function(data, employee_number) {
-  
-  data %>% filter(EmployeeNumber == employee_number) %>%
-    mutate_if(is.factor, as.numeric) %>%
-    #personal dev strategy
-    mutate(personal_development_strategy = case_when(#(Worst Case) Create Personal development
-      PerformanceRating == 1| JobSatisfaction == 1 | JobInvolvement <= 2 ~
-        "Create Personal development",
-      #(Better Case) Promote Training and Formation
-      YearsAtCompany < 3 | TotalWorkingYears < 6 ~
-        "Promote Training and Formation",
-      #(Best Case 1) Seek Mentorship Role
-      (YearsInCurrentRole > 3 | YearsAtCompany >= 5) &
-        PerformanceRating >= 3 &
-        JobSatisfaction == 4 ~
-        "Seek Mentorship Role",
-      #(Best Case 2) Seek Leadership Role
-      JobInvolvement >= 3 & JobSatisfaction >= 3 & PerformanceRating >= 3 ~
-        "Seek Leadership Role",
-      #Catch All
-      TRUE ~"Retain and Mantain")) %>%
-    #Professional dev strategy
-    mutate(professiona_development_strategy = case_when(#Ready For rotation
-      YearsInCurrentRole>= 2 & JobSatisfaction <= 2 ~
-        "Ready For Rotation",
-      #Ready For Promotion Level 2
-      JobLevel == 1 & YearsInCurrentRole >= 2 & 
-        JobInvolvement >= 3 & PerformanceRating >= 3 ~
-        "Ready For Promotion",
-      #Ready For Promotion Level 3
-      JobLevel == 2 & YearsInCurrentRole >= 2  &
-        JobInvolvement >= 4 & PerformanceRating >= 3 ~
-        "Ready For Promotion",
-      #Ready For Promotion Level 4
-      JobLevel == 3 & YearsInCurrentRole >= 3  &
-        JobInvolvement >= 4 & PerformanceRating >= 3 ~
-        "Ready For Promotion",
-      #Ready For Promotion Level 5
-      JobLevel == 4 & YearsInCurrentRole >= 4  &
-        JobInvolvement >= 4 & PerformanceRating >= 3 ~
-        "Ready For Promotion",
-      #Incentive Specialization
-      YearsInCurrentRole >= 4 & JobSatisfaction >= 4 &
-        PerformanceRating >= 3 ~
-        "Incetive Specialization",
-      #Catch All
-      TRUE ~"Retain and Mantain")) %>%
-    #Work Env strategy
-    mutate(Work_enviroment_development_strategy = case_when(#Improve Work-life balance: OverTime, WorkLifeBalance
-      OverTime == 'Yes' | WorkLifeBalance == 1 ~
-        "Improve Work-life balance",
-      #Monitor business travel: BusinessTravel, DistanceFromHome, WorkLifeBalance
-      (BusinessTravel == 3 | DistanceFromHome >= 10) & WorkLifeBalance == 2 ~
-        "Monitor business travel",
-      #Review Job Assignment: EnvironmentSatisfaction, YearsInCurrentRole
-      YearsInCurrentRole >= 2 & EnvironmentSatisfaction == 1 ~
-        'Review Job Assignment',
-      #Promote Job Engagement: JobInvolvement
-      JobInvolvement <= 2 ~
-        "Promote Job Engagement",
-      #Catch All
-      TRUE ~"Retain and Mantain")) %>%
-    select(EmployeeNumber, 
-           personal_development_strategy, 
-           professiona_development_strategy,
-           Work_enviroment_development_strategy)
-}
-
-recommend_strategies(train_readable_tbl, 19)
-
-h2o.shutdown(prompt = FALSE)
+```
+Negli ultimi 3 grafici è mostrato diviso per categoria (Personale, Professionale, Work-life) gli interventi suggeriti e il numero totale di dipendenti che ne necessitano. 
+E' anche possibile ottenere gli interventi suggeriti anche individualmente utilizzando il numero identificativo del dipendente.  
